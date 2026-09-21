@@ -6,7 +6,7 @@
     <div class="community-indicators-incentive__wrapper">
       <div class="community-indicators-incentive__head">
         <h3 class="community-indicators-incentive__title">
-          Introducing Aggr Library
+          Introducing the Community Library
         </h3>
         <Btn
           v-if="!isDismissed"
@@ -18,7 +18,7 @@
       </div>
       <p class="community-indicators-incentive__subtitle">
         Indicators that are uploaded to
-        <a :href="repoUrl" target="_blank">aggr-lib</a>
+        <a :href="repoUrl" target="_blank">the community library</a>
         will automatically appear in this list.
       </p>
       <Btn

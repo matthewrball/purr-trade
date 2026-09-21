@@ -1,6 +1,6 @@
-# Adding a New Exchange to Aggr
+# Adding a New Exchange to Purr
 
-This guide provides a comprehensive step-by-step process for adding a new cryptocurrency exchange to the Aggr trading aggregator, based on the WhiteBIT integration (PR #429).
+This guide provides a comprehensive step-by-step process for adding a new cryptocurrency exchange to Purr, based on the WhiteBIT integration (`src/worker/exchanges/whitebit.ts`).
 
 ## Prerequisites
 
@@ -179,7 +179,7 @@ npm run serve
 If the exchange has complex product formats, you may need to update `src/services/productsService.ts` to handle specific parsing logic.
 
 **When to modify `productsService.ts`:**
-- Exchange uses non-standard symbol formats (e.g., `BTC_USDT_PERP` instead of `BTCUSDT`)
+- Exchange uses non-standard symbol formats (e.g., `HYPE_USDT_PERP` instead of `HYPEUSDT`)
 - Need custom logic for identifying perpetuals, futures, or spot markets
 - Exchange has unique naming conventions that need normalization
 - Special handling for stablecoins or base/quote currency detection
@@ -268,7 +268,7 @@ Unsubscribes from trade updates for a specific trading pair.
 Handles incoming WebSocket messages and emits trade data.
 
 #### `formatTrade(market: string, trade: any): TradeData`
-Formats raw trade data into the standard Aggr trade format:
+Formats raw trade data into the standard Purr trade format:
 ```typescript
 {
   exchange: string,    // Exchange ID

@@ -1,17 +1,17 @@
 version: '3.7'
 
-name: aggr-ui
+name: purr-ui
 
 networks:
   backend:
     name: aggr_backend
   frontend:
-    name: aggr_frontend
+    name: purr_frontend
 
 services:
   front:
-    container_name: aggr-ui-dev
-    image: aggr-ui-dev
+    container_name: purr-ui-dev
+    image: purr-ui-dev
     build:
       context: ../.
       dockerfile: ./docker/Dockerfile.dev
@@ -35,7 +35,7 @@ services:
               memory: 720M
 
   cors:
-    container_name: aggr-cors
+    container_name: purr-cors
     image: testcab/cors-anywhere
     environment:
       - NODE_ENV=development

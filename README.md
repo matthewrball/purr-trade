@@ -1,116 +1,72 @@
+# Purr
 
-# SignificantTrade
+Live trades, liquidations and charts for Hyperliquid, in the browser. Purr is the client for purr.trade.
 
-Cryptocurrency market trades aggregator./
-
-Currently supporting Kucoin, BitMEX, Bitfinex, Binance, Coinbase, Bitstamp, Deribit, Huobi, Okex, Hitbtc, Poloniex, Bybit, Bitget, Bitunix, Gate.io and Crypto.com ([see src/exchanges/](src/exchanges) for detail)
-
-![screenshot](https://i.imgur.com/nHJxsdL.gif)
+Source code: https://github.com/matthewrball/purr-trade
 
 ## What it does
 
-This tool shows **markets orders** LIVE on the crypto market(s) of your choice.
+- Streams live trades from Hyperliquid perps, spot (e.g. `HYPE/USDC`) and HIP-3 markets, with the taker's wallet on large trades
+- Shows liquidations in their own pane
+- Charts price, volume and custom indicators, with Hyperliquid candle history loaded straight from Hyperliquid
+- Can mix in markets from other exchanges (Binance, Bybit, Coinbase, OKX, Bitget and more, see [src/worker/exchanges/](src/worker/exchanges))
+- Plays dynamic audio based on trade size
 
-- Show live trades from exchanges on a specific pair
-- Filter noise by aggregating trades with the same timestamp
-- Calculate rolling sums over defined periods
-- Chart whatever is received from api (so only trades data for now)
-- Dynamic audio based on trade volume and size 
-
-Checkout [CHANGELOG.md](CHANGELOG.md) for details about the recent updates.
+A new workspace opens on the `HYPERLIQUID:HYPE` perp.
 
 ## How it works
 
-![](https://i.imgur.com/chxtEwb.png)
+Purr is a Vue 2 + Vite app. Each exchange connection runs in a Web Worker that listens to the exchange's public WebSocket API, groups trades by time, market and side, and sends the grouped trades to the UI along with market stats (volume, trade counts by side, liquidations).
 
-The application is developed using Vue.js and utilizes the JavaScript WebSocket interface to establish connections with exchange APIs and listen for trade events.
+## Run it locally
 
-The core functionality involves an aggregator that processes raw trades within a dedicated Worker for each Exchange. The aggregator's main objective is to group trades based on time, market, and trade side. Periodically, the worker sends the aggregated trades to the user interface (UI), accompanied by relevant statistics regarding market activity. These statistics include volume sums, trade counts categorized by sides, and information about liquidations.
-
-## Local Installation and Execution Instructions
-
-To begin, we highly recommend utilizing Volta, a node and npm version manager. We provide a convenient script to automate its installation process. This script is compatible with the bash shell, which is available on all major operating systems including Windows, macOS, and Linux.
+Purr is pinned to Node 20.2.0 with [Volta](https://volta.sh) (see `volta` in `package.json`). If you don't have Volta yet, this script installs it:
 
 ```bash
-	./scripts/install-volta.sh
+./scripts/install-volta.sh
 ```
 
-If you want to use with your own data, edit /.env.local with <code>API_URL=your url</code> and build the app (<code>npm run build</code>).
-
-For development, just as any vuejs project
-
-1. Clone the repo
+Then:
 
 ```bash
-git clone https://github.com/Tucsky/aggr
-```
-
-2. Install dependencies
-
-```bash
+git clone https://github.com/matthewrball/purr-trade
+cd purr-trade
 npm install
+npm run cors    # CORS proxy on localhost:8070, used for some exchange APIs
+npm run serve   # dev server on localhost:8080
 ```
 
-3. Run it
-
-  
-
-Development mode
+Production build:
 
 ```bash
-npm run cors
+npm run build       # output in dist/
+npm run serve:dist  # serves dist/ on localhost:8060
 ```
-
-This will start a cors proxy for your development environment
-
-```bash
-npm run serve
-```
-
-This will automatically open a browser window at localhost:8080
-
-
-```bash
-npm run build
-```
-
-and access the dist/index.html directly in the browser later without having to run a command
 
 ### Docker
 
-build your own aggr client docker:
-
 ```bash
-git clone https://github.com/Tucsky/aggr
-cd aggr
-docker-compose -f "docker\docker-compose.yml" up -d --build # prod
+git clone https://github.com/matthewrball/purr-trade
+cd purr-trade
+docker-compose -f "docker/docker-compose.yml" up -d --build # prod
 ```
- If you want to use aggr-server as your local data source, load the docker-compose.dev.yml instead.
+
+To use a local purr-trade-server as your data source, load `docker/docker-compose.dev.yml` instead.
 
 ## Configuration
 
-SignificantTrades is now using Vue Cli which allows you to configure the client using .env file.
+The client is configured with `.env` files (Vite). To override a value, create a `.env.local` (or `.env.development` / `.env.production`) file in the root folder.
 
-Create a <code>.env.local</code> or <code>.env.development</code> or <code>.env.production</code> (.env.local if you don't know) file inside root folder.
-
-  
-|key| description |default value|
+|key|description|default (`.env`)|
 |--|--|--|
-|<code>API_URL</code>|Server instance url.<br>We use it to fetch historical data for the chart component.<br>Example: http://localhost:3000/ |null|
-|<code>PROXY_URL</code>|Redirect HTTP requests from app through a proxy<br>If the <code>PROXY_URL</code> is set to https://cors.aggr.trade/, the app will retrieve Binance's products through this url : https://cors.aggr.trade/https://api.binance.com/api/v3/exchangeInfo |http://localhost:8080/|
+|<code>VITE_APP_API_URL</code>|Server instance url, used to fetch chart history for markets outside Hyperliquid.<br>Example: http://localhost:3000/|http://localhost:3000/|
+|<code>VITE_APP_PROXY_URL</code>|Redirect HTTP requests from the app through a proxy.<br>If it is set to http://localhost:8070/, the app retrieves Binance's products through http://localhost:8070/https://api.binance.com/api/v3/exchangeInfo|http://localhost:8070/|
 
-## Implement historical data
-You can use this project without historical data just by opening the app in your browser, as getting trades from exchanges is made directly in the browser using websocket api.
+## Historical data
 
-In order to show historical data YOU WILL need to setup your own server to provide the data using aggr-server.
+Hyperliquid candles are fetched directly from Hyperliquid, so Hyperliquid charts have history without a server.
 
-See [aggr-server repository](https://github.com/Tucsky/aggr-server).
-
-Let's say you have a server instance running on port 3000, start the client with an environment variable `API_URL=http://localhost:3000/ npm run serve`
-
-## Community
-
-Discord: https://discord.com/invite/MYMUEgMABs
+For other exchanges, run your own [purr-trade-server](https://github.com/matthewrball/purr-trade-server). With a server on port 3000, start the client with `VITE_APP_API_URL=http://localhost:3000/ npm run serve`.
 
 ## Disclaimer
 
@@ -118,7 +74,11 @@ If you plan to use real money with this, USE AT YOUR OWN RISK.
 
 ## Support this project!
 
-BTC bc1q3f5ndx2zww3pw5c5vctw7t4wfgv05fdsc2graj<br>
-SOL FKMNaBJqdpNA1d33hiUEjHaovQ5AiBGACqRuKuxA9q3D<br>
-ETH 0x83bBC120a998cF7dFcBa1518CDDCb68Aa0D0c158<br>
-COINBASE https://commerce.coinbase.com/checkout/c58bd003-5e47-4cfb-ae25-5292f0a0e1e8
+BTC 36ojxqhJLdtR9v1i66fPrz7Y46Skocw9NZ<br>
+Hyperliquid 0x33A9CfaFdB96E2145b5b4EB4ba2c96d21ddB6b8B
+
+## License
+
+GPL-3.0, see [LICENSE](LICENSE).
+
+Purr is a modified version of aggr (https://github.com/Tucsky/aggr), licensed under GPL-3.0. Modified 2026-09-21.

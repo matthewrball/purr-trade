@@ -25,7 +25,7 @@
         <i class="icon-plus"></i>
       </button>
     </div>
-    <div class="dropdown-item" @click.stop>
+    <div class="dropdown-item mb8" @click.stop>
       <label class="checkbox-control -small" @mousedown.prevent>
         <input
           type="checkbox"
@@ -37,19 +37,6 @@
         <span>Word Wrap</span>
       </label>
     </div>
-    <a
-      class="dropdown-item mb8"
-      href="https://github.com/Tucsky/aggr/wiki/introduction-to-scripting"
-      target="_blank"
-      title="Scripting documentation"
-      v-tippy
-      @click.stop
-    >
-      <label class="checkbox-control -small" @mousedown.prevent>
-        <i class="dropdown-item__icon icon-external-link-square-alt mr8"></i>
-        <span>Wiki</span>
-      </label>
-    </a>
   </dropdown>
 </template>
 

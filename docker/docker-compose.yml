@@ -1,11 +1,11 @@
 version: '3.7'
 
-name: aggr-ui
+name: purr-ui
 
 services:
   front:
-    container_name: aggr-ui-prod
-    image: aggr-ui-prod
+    container_name: purr-ui-prod
+    image: purr-ui-prod
     build:
       context: ../.
       dockerfile: ./docker/Dockerfile

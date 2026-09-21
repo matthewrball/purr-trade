@@ -21,5 +21,5 @@ app.get('/*', (req, res) => {
   })
 })
 app.listen(PORT, () => {
-  console.log(`aggr dist server started on ${PORT}`)
+  console.log(`Purr dist server started on ${PORT}`)
 })

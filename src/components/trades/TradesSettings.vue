@@ -320,7 +320,7 @@
             <i
               class="icon-info"
               v-tippy
-              title="Show symbol's names<br>(ex: BTC-USD)"
+              title="Show symbol's names<br>(ex: HYPE/USDC)"
             ></i>
           </span>
         </label>

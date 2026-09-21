@@ -23,7 +23,7 @@
             <div></div>
             <span>
               Ticker only
-              <i class="icon-info" v-tippy title="BTCUSDT → BTC"></i>
+              <i class="icon-info" v-tippy title="HYPE/USDC → HYPE"></i>
             </span>
           </label>
         </div>
