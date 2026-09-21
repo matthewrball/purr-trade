@@ -27,7 +27,11 @@
 
 <script lang="ts">
 import { Threshold } from '@/store/panesSettings/trades'
-import { formatAmount, stripStablePair } from '@/services/productsService'
+import {
+  formatAmount,
+  getMarketsLabel,
+  stripStablePair
+} from '@/services/productsService'
 import { Component, Vue } from 'vue-property-decorator'
 
 @Component({
@@ -57,8 +61,9 @@ export default class TradesPlaceholder extends Vue {
 
   get pairs() {
     const mergeUsdt = this.$store.state.settings.searchTypes.mergeUsdt
+    const groups = {}
 
-    return this.paneMarkets.reduce((pairs, marketKey) => {
+    const localPairs = this.paneMarkets.reduce((pairs, marketKey) => {
       const market = this.$store.state.panes.marketsListeners[marketKey]
 
       let localPair = market ? market.local : marketKey
@@ -69,10 +74,17 @@ export default class TradesPlaceholder extends Vue {
 
       if (pairs.indexOf(localPair) === -1) {
         pairs.push(localPair)
+        groups[localPair] = []
       }
+
+      groups[localPair].push(market)
 
       return pairs
     }, [])
+
+    return localPairs.map(localPair =>
+      getMarketsLabel(groups[localPair], localPair)
+    )
   }
 
   get tradesThresholds(): Threshold[] {

@@ -143,6 +143,7 @@ import Btn from '@/components/framework/Btn.vue'
 import { downloadAnything, getSiblings, slugify } from '@/utils/helpers'
 import dialogService from '@/services/dialogService'
 import { INFRAME } from '@/utils/constants'
+import { getMarketsLabel } from '@/services/productsService'
 import { Prop } from 'vue-property-decorator'
 
 @Component({
@@ -186,7 +187,12 @@ export default class PaneHeader extends Vue {
     if (name) {
       return name.trim()
     } else if (market) {
-      return market.local
+      return getMarketsLabel(
+        this.$store.state.panes.panes[this.paneId].markets
+          .map(marketKey => this.$store.state.panes.marketsListeners[marketKey])
+          .filter(product => product && product.local === market.local),
+        market.local
+      )
     } else {
       return this.type
     }

@@ -210,7 +210,7 @@
               class="badge -green ml8"
               v-text="markets.length"
             ></span>
-            <span v-text="localPair"></span>
+            <span v-text="getGroupLabel(markets, localPair)"></span>
           </button>
         </template>
         <template v-else>
@@ -408,7 +408,8 @@ import {
   getExchangeSymbols,
   ensureIndexedProducts,
   parseMarket,
-  stripStableQuote
+  stripStableQuote,
+  getMarketsLabel
 } from '@/services/productsService'
 import ToggableSection from '@/components/framework/ToggableSection.vue'
 import noResultsPng from '@/assets/noresults.png'
@@ -1248,6 +1249,12 @@ export default {
           break
         }
       }
+    },
+    getGroupLabel(markets, localPair) {
+      return getMarketsLabel(
+        markets.map(market => selectedProducts[market]),
+        localPair
+      )
     },
     getNoResultsMessage() {
       const options = [

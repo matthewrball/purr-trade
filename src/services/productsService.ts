@@ -554,6 +554,46 @@ export function getMarketProduct(exchangeId, symbol, noStable?: boolean) {
   }
 }
 
+/**
+ * display label of a market (Hyperliquid naming for HYPERLIQUID markets)
+ * does not replace product.local, which stays the grouping key
+ */
+export function getMarketLabel(market): string {
+  if (market.exchange !== 'HYPERLIQUID') {
+    return market.local
+  }
+
+  if (market.type === 'spot') {
+    return market.pair
+  }
+
+  const [dex, coin] = market.pair.includes(':')
+    ? market.pair.split(':')
+    : ['', market.pair]
+
+  return coin + '-USDC' + (dex ? ' (' + dex + ')' : '')
+}
+
+/**
+ * display label of a group of markets sharing the same local pair
+ * Hyperliquid label only when every market is HYPERLIQUID and they share it
+ */
+export function getMarketsLabel(markets, fallback: string): string {
+  if (
+    !markets ||
+    !markets.length ||
+    markets.some(market => !market || market.exchange !== 'HYPERLIQUID')
+  ) {
+    return fallback
+  }
+
+  const label = getMarketLabel(markets[0])
+
+  return markets.every(market => getMarketLabel(market) === label)
+    ? label
+    : fallback
+}
+
 export async function getApiSupportedMarkets() {
   let products = import.meta.env.VITE_APP_API_SUPPORTED_PAIRS as
     | string
