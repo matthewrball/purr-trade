@@ -33,26 +33,15 @@ export default class DonoDropdown extends Vue {
     {
       label: 'with Bitcoin',
       icon: 'icon-bitcoin',
-      click: () => this.copyAddress('bc1q3f5ndx2zww3pw5c5vctw7t4wfgv05fdsc2graj', 'Bitcoin')
+      click: () => this.copyAddress('36ojxqhJLdtR9v1i66fPrz7Y46Skocw9NZ', 'Bitcoin')
     },
     {
-      label: 'Ethereum',
-      icon: 'icon-eth',
+      label: 'on Hyperliquid',
+      icon: 'icon-HYPERLIQUID',
       click: () =>
-        this.copyAddress('0x83bBC120a998cF7dFcBa1518CDDCb68Aa0D0c158', 'Ethereum')
-    },
-    {
-      label: 'Solana',
-      icon: 'icon-sol',
-      click: () =>
-        this.copyAddress('FKMNaBJqdpNA1d33hiUEjHaovQ5AiBGACqRuKuxA9q3D', 'Solana')
-    },
-    {
-      label: 'with other coin',
-      icon: 'icon-COINBASE',
-      click: () =>
-        window.open(
-          'https://commerce.coinbase.com/checkout/c58bd003-5e47-4cfb-ae25-5292f0a0e1e8'
+        this.copyAddress(
+          '0x33A9CfaFdB96E2145b5b4EB4ba2c96d21ddB6b8B',
+          'Hyperliquid'
         )
     }
   ]
