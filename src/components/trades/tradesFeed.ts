@@ -348,7 +348,7 @@ export default class TradesFeed {
     </div>
     ${
       wallet
-        ? `<a class="trade__wallet" href="https://app.hyperliquid.xyz/explorer/address/${wallet.address}" target="_blank" rel="noopener noreferrer" title="${trade.liquidation ? 'Liquidated wallet' : 'First taker in this trade'}: ${wallet.address}">${wallet.text}</a>`
+        ? `<a class="trade__wallet" href="https://app.hyperliquid.xyz/explorer/address/${wallet.address}" target="_blank" rel="noopener noreferrer" title="${trade.liquidation ? 'Liquidated wallet' : 'Taker wallet'}: ${wallet.address}">${wallet.text}</a>`
         : ''
     }
     <div class="trade__time ${timestampClass}" data-timestamp="${trade.timestamp.toString()}">${timestampText}</div>

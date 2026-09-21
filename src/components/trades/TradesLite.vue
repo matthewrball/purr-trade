@@ -1029,12 +1029,16 @@ export default class TradesLite extends Mixins(PaneMixin) {
     const amount = this.baseSizingCurrency
       ? Math.round(trade.amount * 1e6) / 1e6
       : formatAmount(trade.amount)
-    const wallet = walletAddress(
-      trade.user,
-      trade.notional,
-      this.walletThreshold
-    )
+    let wallet = walletAddress(trade.user, trade.notional, this.walletThreshold)
     const suffix = liquidation ? (trade.side === 'buy' ? '🐻' : '🐂') : ''
+    // the wallet drops before fillText's maxWidth squeezes the amount
+    if (
+      wallet &&
+      this.ctx.measureText(`${amount} ${wallet.text}${suffix}`).width >
+        this.maxWidth
+    ) {
+      wallet = null
+    }
     const text = amount + (wallet ? ` ${wallet.text}` : '') + suffix
     this.ctx.fillText(
       text,
@@ -1044,17 +1048,10 @@ export default class TradesLite extends Mixins(PaneMixin) {
     )
 
     if (wallet) {
-      const scale = Math.min(
-        1,
-        this.maxWidth / this.ctx.measureText(text).width
-      )
-      const width = this.ctx.measureText(wallet.text).width * scale
+      const width = this.ctx.measureText(wallet.text).width
       this.walletLinks.push({
         address: wallet.address,
-        x:
-          this.amountOffset -
-          this.ctx.measureText(suffix).width * scale -
-          width,
+        x: this.amountOffset - this.ctx.measureText(suffix).width - width,
         y: this.drawOffset,
         width,
         height

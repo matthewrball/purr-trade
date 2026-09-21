@@ -205,7 +205,8 @@ class Aggregator {
 
         if (
           aggTrade.timestamp + settings.aggregationLength > trade.timestamp &&
-          aggTrade.side === trade.side
+          aggTrade.side === trade.side &&
+          aggTrade.user === trade.user
         ) {
           aggTrade.size += trade.size
           aggTrade.price = trade.price
@@ -262,7 +263,8 @@ class Aggregator {
         if (
           settings.aggregationLength > 0 &&
           aggTrade.timestamp + settings.aggregationLength > trade.timestamp &&
-          aggTrade.side === trade.side
+          aggTrade.side === trade.side &&
+          aggTrade.user === trade.user
         ) {
           aggTrade.size += trade.size
           aggTrade.value += trade.price * trade.size

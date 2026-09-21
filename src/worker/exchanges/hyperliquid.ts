@@ -9,6 +9,7 @@ export default class HYPERLIQUID extends Exchange {
   private liquidationApi: WebSocket
   private liquidationTimer: ReturnType<typeof setTimeout>
   private liquidationDelay = 1000
+  private subscribedAt: { [pair: string]: number } = {}
   protected endpoints: { [id: string]: any } = {
     PRODUCTS: ['meta', 'spotMeta', 'perpDexs'].map(type => ({
       url: 'https://api.hyperliquid.xyz/info',
@@ -114,6 +115,7 @@ export default class HYPERLIQUID extends Exchange {
               })
             )
             if (this.spotCoins[pair]) {
+              this.subscribedAt[pair] = Date.now()
               api.send(
                 JSON.stringify({
                   method: 'subscribe',
@@ -137,6 +139,9 @@ export default class HYPERLIQUID extends Exchange {
     if (!(await super.subscribe(api, pair))) {
       return
     }
+
+    // HL replays its last 30 trades (unmarked) right after subscribing
+    this.subscribedAt[pair] = Date.now()
 
     api.send(
       JSON.stringify({
@@ -286,12 +291,18 @@ export default class HYPERLIQUID extends Exchange {
     const json = JSON.parse(event.data)
 
     if (json && json.channel === 'trades') {
-      return this.emitTrades(
-        api._id,
-        json.data
-          .map(t => this.formatResponse(t))
-          .filter(trade => trade.pair && api._connected.includes(trade.pair))
-      )
+      let trades = json.data
+        .map(t => this.formatResponse(t))
+        .filter(trade => trade.pair && api._connected.includes(trade.pair))
+      const pair = trades.length && trades[0].pair
+      const subscribedAt = pair && this.subscribedAt[pair]
+      if (subscribedAt) {
+        // the replay is the first frame, only it is checked against the local
+        // clock so a skewed clock costs one frame at most, not live trades
+        delete this.subscribedAt[pair]
+        trades = trades.filter(trade => trade.timestamp >= subscribedAt)
+      }
+      return this.emitTrades(api._id, trades)
     }
   }
 
@@ -303,7 +314,7 @@ export default class HYPERLIQUID extends Exchange {
       price: +t.px,
       size: +t.sz,
       side: t.side === 'B' ? 'buy' : 'sell',
-      // Aggregation retains this first fill's user when subsequent fills merge.
+      // Aggregation only merges fills from this same taker.
       user: t.users?.[t.side === 'B' ? 0 : 1]
     }
   }
