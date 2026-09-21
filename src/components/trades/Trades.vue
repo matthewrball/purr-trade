@@ -301,6 +301,10 @@ export default class Trades extends Mixins(PaneMixin) {
     &.-level-2 {
       line-height: 1.75em !important;
     }
+
+    .trade__wallet {
+      margin-right: calc(2.4em - 0.5rem);
+    }
   }
 }
 
@@ -492,6 +496,8 @@ export default class Trades extends Mixins(PaneMixin) {
   }
 
   .trade__price {
+    min-width: min-content;
+
     small {
       font-size: 0.75em;
       font-weight: 400;
@@ -504,6 +510,7 @@ export default class Trades extends Mixins(PaneMixin) {
 
   .trade__amount {
     flex-grow: 1.25;
+    min-width: min-content;
     .trade__amount__base {
       display: none;
       padding: 0 0.5em;
@@ -523,7 +530,12 @@ export default class Trades extends Mixins(PaneMixin) {
   .trade__wallet {
     color: inherit;
     white-space: nowrap;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
     margin-left: 0.5em;
+    // stop where .trade__time starts, it overhangs the 2rem gutter on big rows
+    margin-right: calc(2.4em - 1.5rem);
     font-size: 0.8em;
   }
 

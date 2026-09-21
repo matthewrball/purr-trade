@@ -2,7 +2,7 @@
   "liquidations": [
     {
       "id": "liquidation_threshold",
-      "amount": 50000,
+      "amount": 2500,
       "buyColor": "rgba(236,64,122,0.5)",
       "sellColor": "rgba(255,152,0,0.5)",
       "buyAudio": "var srqtR = Math.min(1, gain / 4)\nplay(329.63, srqtR, srqtR*2,0,,,'sine')\nplay(329.63, srqtR, srqtR*4,0.08,,,'sine')",
@@ -10,7 +10,7 @@
     },
     {
       "id": "liquidation_significant",
-      "amount": 100000,
+      "amount": 5000,
       "buyColor": "rgba(236,64,122,0.6)",
       "sellColor": "rgba(255,152,0,0.7)",
       "buyAudio": "var srqtR = Math.min(1, gain / 4)\nplay(329.63, srqtR, srqtR*4,0,,,'sine')\nplay(329.63, srqtR, srqtR*6,0.08,,,'sine')",
@@ -18,7 +18,7 @@
     },
     {
       "id": "liquidation_huge",
-      "amount": 200000,
+      "amount": 10000,
       "buyGif": "flying money",
       "sellGif": "flying money",
       "buyColor": "rgba(236,64,122,0.7)",
@@ -28,7 +28,7 @@
     },
     {
       "id": "liquidation_rare",
-      "amount": 1000000,
+      "amount": 50000,
       "buyGif": "explosion",
       "sellGif": "explosion",
       "buyColor": "rgb(156,39,176)",
@@ -40,7 +40,7 @@
   "thresholds": [
     {
       "id": "threshold",
-      "amount": 100000,
+      "amount": 5000,
       "buyColor": "rgba(119, 148, 92, 0.25)",
       "sellColor": "rgba(239, 67, 82, 0.25)",
       "buyAudio": "play(659.26, gain / 10, 0.1 + gain / 7)",
@@ -48,7 +48,7 @@
     },
     {
       "id": "significant",
-      "amount": 250000,
+      "amount": 12500,
       "buyColor": "rgb(100, 157, 102)",
       "sellColor": "rgb(239, 67, 82)",
       "buyAudio": "play(659.26, 0.05 + gain / 10, 0.2 + ratio * 0.23,0,,0); play(830.6, 0.05 + gain / 10, 0.2 + ratio * 0.23, 0.08,,0)",
@@ -56,7 +56,7 @@
     },
     {
       "id": "huge",
-      "amount": 1000000,
+      "amount": 50000,
       "buyGif": "cash bullish",
       "sellGif": "cash bearish",
       "buyColor": "rgb(59, 202, 109)",
@@ -66,7 +66,7 @@
     },
     {
       "id": "rare",
-      "amount": 10000000,
+      "amount": 500000,
       "buyGif": "explosion",
       "sellGif": "explosion",
       "buyColor": "rgb(0, 255, 127)",
