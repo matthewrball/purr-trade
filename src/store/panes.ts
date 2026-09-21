@@ -53,8 +53,7 @@ export interface PanesState {
 
 const layoutDesktop = [
   { i: 'chart', type: 'chart', x: 0, y: 0, w: 20, h: 24 },
-  { i: 'trades', type: 'trades', x: 20, y: 0, w: 4, h: 20 },
-  { i: 'liquidations', type: 'trades', x: 20, y: 20, w: 4, h: 4 }
+  { i: 'trades', type: 'trades', x: 20, y: 0, w: 4, h: 24 }
 ]
 
 const layoutMobile = [

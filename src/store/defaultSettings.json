@@ -23,7 +23,7 @@
   },
   "sections": ["settings-workspaces", "settings-trades", "timeframe-minutes"],
   "searchTypes": {
-    "recentSearches": true,
+    "recent": true,
     "historical": true,
     "spots": true,
     "perpetuals": true,
@@ -45,12 +45,10 @@
     { "label": "3m", "value": "180" },
     { "label": "5m", "value": "300" },
     { "label": "15m", "value": "900" },
-    { "label": "21m", "value": "1260" },
     { "label": "30m", "value": "1800" },
     { "label": "1h", "value": "3600" },
     { "label": "2h", "value": "7200" },
     { "label": "4h", "value": "14400" },
-    { "label": "6h", "value": "21600" },
     { "label": "8h", "value": "28800" },
     { "label": "12h", "value": "43200" },
     { "label": "1d", "value": "86400" },
@@ -63,7 +61,13 @@
     { "label": "1000 ticks", "value": "1000t" },
     { "label": "1597 ticks", "value": "1597t" }
   ],
-  "favoriteTimeframes": {},
+  "favoriteTimeframes": {
+    "60": "1m",
+    "300": "5m",
+    "900": "15m",
+    "3600": "1h",
+    "14400": "4h"
+  },
   "normalizeWatermarks": true,
   "alerts": true,
   "alertsColor": "rgb(0,255,0)",

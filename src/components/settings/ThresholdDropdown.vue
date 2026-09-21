@@ -1,7 +1,7 @@
 <template>
   <div class="threshold-dropdown">
     <h3>@ {{ formatAmount(threshold.amount) }}</h3>
-    <div class="form-group mb8 threshold-panel__gif">
+    <div class="form-group mb8 threshold-panel__gif" v-if="giphyEnabled">
       <div class="column">
         <div class="form-group" v-if="isLegacy">
           <label>Buy gif</label>
@@ -113,6 +113,7 @@ export default class ThresholdDropdown extends Vue {
   private paneId: string
   private threshold: Threshold
   private canDelete: boolean
+  giphyEnabled = !!import.meta.env.VITE_APP_GIPHY_KEY
 
   get isLegacy() {
     return this.$store.state.panes.panes[this.paneId].type === 'trades'

@@ -218,8 +218,10 @@
         </label>
       </div>
     </div>
-    <div class="divider" />
-    <AlertsSettings />
+    <template v-if="alertsEnabled">
+      <div class="divider" />
+      <AlertsSettings />
+    </template>
   </div>
 </template>
 
@@ -231,6 +233,7 @@ import ToggableGroup from '@/components/framework/ToggableGroup.vue'
 import DropdownButton from '@/components/framework/DropdownButton.vue'
 import ColorPickerControl from '@/components/framework/picker/ColorPickerControl.vue'
 import AlertsSettings from '@/components/alerts/AlertsSettings.vue'
+import { ALERTS_ENABLED } from '@/utils/constants'
 
 @Component({
   components: {
@@ -250,6 +253,7 @@ import AlertsSettings from '@/components/alerts/AlertsSettings.vue'
 })
 export default class ChartSettings extends Vue {
   paneId: string
+  alertsEnabled = ALERTS_ENABLED
 
   get showLegend() {
     return this.$store.state[this.paneId].showLegend

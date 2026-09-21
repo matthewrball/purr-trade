@@ -301,7 +301,7 @@
               :class="{ '-active': activeIndex === index }"
               class="-action"
             >
-              <td v-text="group.localPair"></td>
+              <td v-text="getGroupLabel(group.markets, group.localPair)"></td>
               <td class="-lower">
                 <span class="search-dialog__group-count">
                   <div class="badge mr8">
@@ -409,6 +409,7 @@ import {
   ensureIndexedProducts,
   parseMarket,
   stripStableQuote,
+  getMarketLabel,
   getMarketsLabel
 } from '@/services/productsService'
 import ToggableSection from '@/components/framework/ToggableSection.vue'
@@ -418,6 +419,7 @@ const RESULTS_PER_PAGE = 25
 
 const selectedProducts = {}
 let flattenedProducts = []
+let productsById = {}
 
 export default {
   mixins: [DialogMixin],
@@ -663,7 +665,9 @@ export default {
         .filter(
           product =>
             selection.indexOf(product.id) === -1 &&
-            queryFilter.test(product.local)
+            (queryFilter.test(product.local) ||
+              queryFilter.test(product.pair) ||
+              queryFilter.test(getMarketLabel(product)))
         )
         .reduce((groups, product) => {
           let localPair
@@ -710,9 +714,14 @@ export default {
             }, {})
           }))
       } else {
+        const matchId = this.query.indexOf(':') !== -1
+
         return this.filteredProducts.filter(
           product =>
-            selection.indexOf(product.id) === -1 && queryFilter.test(product.id)
+            selection.indexOf(product.id) === -1 &&
+            (queryFilter.test(product.pair) ||
+              queryFilter.test(getMarketLabel(product)) ||
+              (matchId && queryFilter.test(product.id)))
         )
       }
     },
@@ -1216,6 +1225,10 @@ export default {
       flattenedProducts = Array.prototype.concat(
         ...Object.values(indexedProducts)
       )
+      productsById = flattenedProducts.reduce((acc, product) => {
+        acc[product.id] = product
+        return acc
+      }, {})
 
       this.cacheSelectedProducts()
 
@@ -1252,7 +1265,7 @@ export default {
     },
     getGroupLabel(markets, localPair) {
       return getMarketsLabel(
-        markets.map(market => selectedProducts[market]),
+        markets.map(market => selectedProducts[market] || productsById[market]),
         localPair
       )
     },

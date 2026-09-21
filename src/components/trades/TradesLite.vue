@@ -71,7 +71,11 @@
 import { Component, Mixins, Watch } from 'vue-property-decorator'
 import PaneMixin from '../../mixins/paneMixin'
 import aggregatorService from '../../services/aggregatorService'
-import { formatAmount, formatMarketPrice } from '../../services/productsService'
+import {
+  formatAmount,
+  formatMarketPrice,
+  getMarketLabel
+} from '../../services/productsService'
 import { Threshold, TradesPaneState } from '../../store/panesSettings/trades'
 import {
   getColorByWeight,
@@ -1000,9 +1004,16 @@ export default class TradesLite extends Mixins(PaneMixin) {
   }
 
   drawPair(trade, height) {
+    const market =
+      this.$store.state.panes.marketsListeners[
+        trade.exchange + ':' + trade.pair
+      ]
+
     this.ctx.textAlign = 'left'
     this.ctx.fillText(
-      trade.pair,
+      trade.exchange === 'HYPERLIQUID' && market
+        ? getMarketLabel(market)
+        : trade.pair,
       this.pairOffset,
       this.drawOffset + height / 2 + 1,
       this.maxWidth

@@ -199,7 +199,8 @@ export default class HYPERLIQUID extends Exchange {
   }
 
   openLiquidationApi() {
-    const url = import.meta.env.VITE_APP_API_URL
+    // full socket url of the optional relay, unset = no liquidation socket
+    const url = import.meta.env.VITE_APP_LIQUIDATIONS_URL
     if (
       !url ||
       this.liquidationApi ||
@@ -211,9 +212,7 @@ export default class HYPERLIQUID extends Exchange {
       return
     }
 
-    const api = new WebSocket(
-      url.replace(/^http/, 'ws').replace(/\/$/, '') + '/liquidations'
-    )
+    const api = new WebSocket(url.replace(/^http/, 'ws'))
     this.liquidationApi = api
     let openedAt = 0
     api.onopen = () => {
@@ -291,16 +290,19 @@ export default class HYPERLIQUID extends Exchange {
     const json = JSON.parse(event.data)
 
     if (json && json.channel === 'trades') {
-      let trades = json.data
+      const trades = json.data
         .map(t => this.formatResponse(t))
         .filter(trade => trade.pair && api._connected.includes(trade.pair))
       const pair = trades.length && trades[0].pair
       const subscribedAt = pair && this.subscribedAt[pair]
       if (subscribedAt) {
-        // the replay is the first frame, only it is checked against the local
-        // clock so a skewed clock costs one frame at most, not live trades
+        // the replay is the first frame after a (re)subscribe: drop it when it
+        // arrives within 5s of the subscribe (local elapsed time only, HL block
+        // time is never compared with the local clock)
         delete this.subscribedAt[pair]
-        trades = trades.filter(trade => trade.timestamp >= subscribedAt)
+        if (Date.now() - subscribedAt < 5000) {
+          return
+        }
       }
       return this.emitTrades(api._id, trades)
     }

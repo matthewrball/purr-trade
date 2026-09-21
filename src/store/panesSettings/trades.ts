@@ -79,7 +79,7 @@ const state = {
   showHistograms: true,
   thresholdsMultipler: 1,
   showAvgPrice: true,
-  walletThreshold: 50000
+  walletThreshold: 10000
 } as TradesPaneState
 
 const actions = {
@@ -89,7 +89,7 @@ const actions = {
       (state.thresholds.length === 1 &&
         typeof state.thresholds[0].id === 'undefined')
     ) {
-      state.thresholds = defaultTresholds.thresholds
+      state.thresholds = JSON.parse(JSON.stringify(defaultTresholds.thresholds))
     }
 
     if (
@@ -97,7 +97,9 @@ const actions = {
       (state.liquidations.length === 1 &&
         typeof state.liquidations[0].id === 'undefined')
     ) {
-      state.liquidations = defaultTresholds.liquidations
+      state.liquidations = JSON.parse(
+        JSON.stringify(defaultTresholds.liquidations)
+      )
     }
   },
   updateThreshold(

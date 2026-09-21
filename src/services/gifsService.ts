@@ -2,6 +2,8 @@ import store from '@/store'
 import { slugify } from '@/utils/helpers'
 import workspacesService from './workspacesService'
 
+const GIPHY_KEY = import.meta.env.VITE_APP_GIPHY_KEY
+
 class GifsService {
   cache: { [keyword: string]: string[] } = {}
   promisesOfGifs: { [keyword: string]: Promise<string[]> } = {}
@@ -59,7 +61,7 @@ class GifsService {
   }
 
   async getGifs(keyword, showNotice?: boolean) {
-    if (!keyword) {
+    if (!keyword || !GIPHY_KEY) {
       return
     }
 
@@ -94,7 +96,7 @@ class GifsService {
   }
 
   async fetchGifByKeyword(keyword: string, showNotice?: boolean) {
-    if (!keyword) {
+    if (!keyword || !GIPHY_KEY) {
       return
     }
 
@@ -103,7 +105,8 @@ class GifsService {
     return fetch(
       'https://api.giphy.com/v1/gifs/search?q=' +
         keyword +
-        '&rating=r&limit=100&api_key=b5Y5CZcpj9spa0xEfskQxGGnhChYt3hi'
+        '&rating=r&limit=100&api_key=' +
+        GIPHY_KEY
     )
       .then(res => res.json())
       .then(async res => {

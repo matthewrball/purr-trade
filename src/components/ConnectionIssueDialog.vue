@@ -47,7 +47,12 @@
             class="connection-issue-dialog__step"
             key="step-1"
           >
-            <p class="-inline mb0 mt0">
+            <p v-if="isHyperliquid" class="-inline mb0 mt0">
+              Hyperliquid refused or dropped the connection. A network blocker,
+              VPN or firewall may be in the way, or too many tabs are open
+              (Hyperliquid limits connections per IP).
+            </p>
+            <p v-else class="-inline mb0 mt0">
               The exchange API is unreachable due to
               <u
                 title="Beginning in late November 2022, Binance began declining API requests originating from US IP addresses."
@@ -72,7 +77,7 @@
                   <i class="icon-eraser mr8"></i> Clear proxy URL
                 </button>
               </li>
-              <li>
+              <li v-if="!isHyperliquid">
                 <p>
                   Disable all {{ exchangeId }}'s pairs so you won't see the
                   issue anymore
@@ -91,7 +96,10 @@
               </li>
 
               <li>
-                <p>Use a VPN</p>
+                <p v-if="isHyperliquid">
+                  Close extra tabs or allow api.hyperliquid.xyz, then retry
+                </p>
+                <p v-else>Use a VPN</p>
 
                 <button
                   type="button"
@@ -101,7 +109,8 @@
                   title="Retry connection with exchange"
                   v-tippy
                 >
-                  <i class="icon-refresh mr8"></i> I enabled my VPN
+                  <i class="icon-refresh mr8"></i>
+                  {{ isHyperliquid ? 'Retry' : 'I enabled my VPN' }}
                 </button>
               </li>
             </ol>
@@ -180,6 +189,9 @@ export default {
     }
   },
   computed: {
+    isHyperliquid() {
+      return this.exchangeId === 'HYPERLIQUID'
+    },
     currentWsProxyUrl() {
       return this.$store.state.settings.wsProxyUrl
     },
