@@ -5,6 +5,7 @@ export default class HYPERLIQUID extends Exchange {
   id = 'HYPERLIQUID'
   private spotCoins: { [pair: string]: string } = {}
   private spotPairs: { [coin: string]: string } = {}
+  private perps: Promise<string[]>
   private liquidationApi: WebSocket
   private liquidationTimer: ReturnType<typeof setTimeout>
   private liquidationDelay = 1000
@@ -19,6 +20,44 @@ export default class HYPERLIQUID extends Exchange {
 
   async getUrl() {
     return 'wss://api.hyperliquid.xyz/ws'
+  }
+
+  get requiresProducts() {
+    // link waits only for the metadata needed by the requested market.
+    return false
+  }
+
+  async link(market: string, hadError?: boolean) {
+    const pair = market.replace(/^[^:]*:/, '')
+    if (!this.products?.includes(pair)) {
+      if (!/[:/]/.test(pair)) {
+        if (!this.perps) {
+          this.perps = fetch('https://api.hyperliquid.xyz/info', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ type: 'meta' })
+          })
+            .then(async response => {
+              if (!response.ok) {
+                throw new Error('Failed to fetch Hyperliquid perps')
+              }
+              const meta = await response.json()
+              return meta.universe
+                .filter(product => !product.isDelisted)
+                .map(product => product.name)
+            })
+            .catch(error => {
+              this.perps = null
+              throw error
+            })
+        }
+        const perps = await this.perps
+        this.products = [...new Set([...(this.products || []), ...perps])]
+      } else {
+        await this.getProducts()
+      }
+    }
+    return super.link(market, hadError)
   }
 
   formatProducts([perps, spot, , ...dexProducts]) {

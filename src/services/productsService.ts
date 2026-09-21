@@ -80,6 +80,7 @@ const stablecoinPairLookup = new RegExp(
 const simplePairLookup = new RegExp(`^([A-Z0-9]{2,})[-/_]?([A-Z0-9]{3,})$`)
 
 const promisesOfProducts = {}
+let apiProductsUnavailable = false
 
 export const indexedProducts = {}
 
@@ -347,6 +348,18 @@ export async function getStoredProductsOrFetch(
     productsData = productsStorage.data
   }
 
+  if (exchangeId === 'HYPERLIQUID' && productsData) {
+    const symbols = Array.isArray(productsData)
+      ? productsData
+      : productsData.products
+    store.commit('app/SET_HISTORICAL_MARKETS', [
+      ...new Set([
+        ...store.state.app.historicalMarkets,
+        ...symbols.map(pair => `HYPERLIQUID:${pair}`)
+      ])
+    ])
+  }
+
   return productsData
 }
 
@@ -551,7 +564,12 @@ export async function getApiSupportedMarkets() {
     products = []
   }
 
-  if (!import.meta.env.VITE_APP_API_URL) {
+  // Client-direct HL history needs no API discovery. Other history is opt-in.
+  if (
+    !import.meta.env.VITE_APP_API_URL ||
+    apiProductsUnavailable ||
+    !products.some(market => !market.startsWith('HYPERLIQUID:'))
+  ) {
     return products
   }
 
@@ -578,11 +596,14 @@ export async function getApiSupportedMarkets() {
   }
 
   try {
-    const products = await fetch(getApiUrl('products')).then(response =>
-      response.json()
-    )
+    const products = await fetch(getApiUrl('products')).then(response => {
+      if (!response.ok) {
+        throw new Error('API products unavailable')
+      }
+      return response.json()
+    })
 
-    if (!products.length) {
+    if (!Array.isArray(products) || !products.length) {
       throw new Error('invalid supported markets list')
     }
 
@@ -596,7 +617,7 @@ export async function getApiSupportedMarkets() {
 
     return products
   } catch (error) {
-    console.error(error)
+    apiProductsUnavailable = true
   }
 
   return products
