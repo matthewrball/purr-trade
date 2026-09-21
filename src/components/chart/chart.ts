@@ -39,7 +39,11 @@ import dialogService from '@/services/dialogService'
 import { ChartPaneState, PriceScaleSettings } from '@/store/panesSettings/chart'
 import aggregatorService from '@/services/aggregatorService'
 import workspacesService from '@/services/workspacesService'
-import { stripStablePair, marketDecimals } from '@/services/productsService'
+import {
+  stripStablePair,
+  marketDecimals,
+  getMarketsLabel
+} from '@/services/productsService'
 import audioService from '@/services/audioService'
 import alertService, {
   MarketAlert,
@@ -192,6 +196,7 @@ export default class Chart {
     const markets: string[] = store.state.panes.panes[this.paneId].markets
     const normalizeWatermarks = store.state.settings.normalizeWatermarks
     const marketsForWatermark: string[] = []
+    const watermarkGroups: { [localPair: string]: any[] } = {}
     const marketsIndexes: { [index: string]: number } = {}
     const marketsFilters: any = {}
 
@@ -221,6 +226,13 @@ export default class Chart {
         )
       }
 
+      if (marketsFilters[marketKey]) {
+        if (!watermarkGroups[localPair]) {
+          watermarkGroups[localPair] = []
+        }
+        watermarkGroups[localPair].push(market)
+      }
+
       // find main pair
       if (!marketsIndexes[localPair]) {
         marketsIndexes[localPair] = 0
@@ -244,7 +256,13 @@ export default class Chart {
       }, [])
       .sort((a, b) => b.count - a.count)[0]?.index
 
-    this.updateWatermark(marketsForWatermark)
+    this.updateWatermark(
+      normalizeWatermarks
+        ? marketsForWatermark.map(localPair =>
+            getMarketsLabel(watermarkGroups[localPair], localPair)
+          )
+        : marketsForWatermark
+    )
     this.resetPriceScales()
     this.refreshAutoDecimals()
 

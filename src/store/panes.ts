@@ -8,7 +8,11 @@ import { ModulesState } from '.'
 import panesSettings from './panesSettings'
 import defaultPanes from './defaultPanes.json'
 import { ListenedProduct } from './app'
-import { getMarketProduct, parseMarket } from '../services/productsService'
+import {
+  getMarketProduct,
+  getMarketsLabel,
+  parseMarket
+} from '../services/productsService'
 import { GridItem, GridSpace, findOrCreateSpace } from '@/utils/grid'
 import dialogService from '@/services/dialogService'
 
@@ -68,7 +72,12 @@ const getters = {
     if (name) {
       return name.trim()
     } else if (market) {
-      return market.local
+      return getMarketsLabel(
+        state.panes[id].markets
+          .map(marketKey => state.marketsListeners[marketKey])
+          .filter(product => product && product.local === market.local),
+        market.local
+      )
     } else {
       return state.panes[id].type
     }
