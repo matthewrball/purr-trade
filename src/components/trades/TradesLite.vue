@@ -56,12 +56,19 @@
     <code v-if="paused" class="pane-trades__paused">
       {{ paused }}
     </code>
-    <canvas ref="canvas" @dblclick="prepareEverything" />
+    <canvas
+      ref="canvas"
+      tabindex="0"
+      aria-label="Trades. Press Enter to open the newest displayed wallet."
+      @dblclick="prepareEverything"
+      @click="openWalletAt"
+      @keydown.enter.prevent="openWalletAt()"
+    />
   </div>
 </template>
 
 <script lang="ts">
-import { Component, Mixins } from 'vue-property-decorator'
+import { Component, Mixins, Watch } from 'vue-property-decorator'
 import PaneMixin from '../../mixins/paneMixin'
 import aggregatorService from '../../services/aggregatorService'
 import { formatAmount, formatMarketPrice } from '../../services/productsService'
@@ -82,6 +89,7 @@ import dialogService from '../../services/dialogService'
 import audioService, { AudioFunction } from '../../services/audioService'
 import logos from '@/assets/exchanges'
 import { Trade } from '../../types/types'
+import { openWallet, walletAddress } from './wallet'
 
 const DEBUG = false
 const GRADIENT_DETAIL = 5
@@ -174,6 +182,8 @@ export default class TradesLite extends Mixins(PaneMixin) {
     price: number
     side: string
     time: string
+    user?: string
+    notional: number
   }[]
 
   private tradesHistory: any[]
@@ -186,6 +196,13 @@ export default class TradesLite extends Mixins(PaneMixin) {
   private showAvgPrice: boolean
   private limit: number
   private batchSize = 1
+  private walletLinks: {
+    address: string
+    x: number
+    y: number
+    width: number
+    height: number
+  }[] = []
 
   sliderDropdownTrigger = null
   paused = 0
@@ -203,6 +220,17 @@ export default class TradesLite extends Mixins(PaneMixin) {
 
   get thresholdsMultipler() {
     return this.$store.state[this.paneId].thresholdsMultipler
+  }
+
+  get walletThreshold() {
+    return (this.$store.state[this.paneId] as TradesPaneState).walletThreshold
+  }
+
+  @Watch('walletThreshold')
+  onWalletThresholdChange() {
+    if (this.ctx && this.tradesHistory) {
+      this.renderHistory()
+    }
   }
 
   get gradient() {
@@ -352,7 +380,9 @@ export default class TradesLite extends Mixins(PaneMixin) {
         count: trades[i].count,
         price: this.showAvgPrice ? trades[i].avgPrice : trades[i].price,
         side: trades[i].side,
-        time: null
+        time: null,
+        user: trades[i].user,
+        notional: trades[i].size * (trades[i].avgPrice || trades[i].price)
       }
 
       if (!date) {
@@ -833,6 +863,7 @@ export default class TradesLite extends Mixins(PaneMixin) {
   }
 
   clear() {
+    this.walletLinks = []
     this.ctx.resetTransform()
     const style = getComputedStyle(document.documentElement)
     const themeBase = splitColorCode(style.getPropertyValue('--theme-base'))
@@ -917,6 +948,10 @@ export default class TradesLite extends Mixins(PaneMixin) {
       this.paddingTop + Math.round((trade.step / 2) * this.pxRatio)
     const height = this.lineHeight + paddingTop * 2
 
+    this.walletLinks = this.walletLinks.filter(link => {
+      link.y += height
+      return link.y < this.height
+    })
     this.ctx.drawImage(this.ctx.canvas, 0, height)
     this.ctx.fillStyle = trade.background
     this.ctx.fillRect(0, this.drawOffset, this.width, height)
@@ -984,7 +1019,7 @@ export default class TradesLite extends Mixins(PaneMixin) {
     )
   }
 
-  drawAmount(trade: Trade, height, liquidation) {
+  drawAmount(trade: Trade & { notional: number }, height, liquidation) {
     this.ctx.textAlign = 'right'
     const backupFont = this.ctx.font
     this.ctx.font = this.ctx.font.replace(
@@ -994,15 +1029,55 @@ export default class TradesLite extends Mixins(PaneMixin) {
     const amount = this.baseSizingCurrency
       ? Math.round(trade.amount * 1e6) / 1e6
       : formatAmount(trade.amount)
-
+    const wallet = walletAddress(
+      trade.user,
+      trade.notional,
+      this.walletThreshold
+    )
+    const suffix = liquidation ? (trade.side === 'buy' ? '🐻' : '🐂') : ''
+    const text = amount + (wallet ? ` ${wallet.text}` : '') + suffix
     this.ctx.fillText(
-      amount + (liquidation ? (trade.side === 'buy' ? '🐻' : '🐂') : ''),
+      text,
       this.amountOffset,
       this.drawOffset + height / 2 + 1,
       this.maxWidth
     )
 
+    if (wallet) {
+      const scale = Math.min(
+        1,
+        this.maxWidth / this.ctx.measureText(text).width
+      )
+      const width = this.ctx.measureText(wallet.text).width * scale
+      this.walletLinks.push({
+        address: wallet.address,
+        x:
+          this.amountOffset -
+          this.ctx.measureText(suffix).width * scale -
+          width,
+        y: this.drawOffset,
+        width,
+        height
+      })
+    }
     this.ctx.font = backupFont
+  }
+
+  openWalletAt(event?: MouseEvent) {
+    const x = event?.offsetX * this.pxRatio
+    const y = event?.offsetY * this.pxRatio
+    const link = event
+      ? this.walletLinks.find(
+          link =>
+            x >= link.x &&
+            x <= link.x + link.width &&
+            y >= link.y &&
+            y < Math.min(link.y + link.height, this.height)
+        )
+      : this.walletLinks[this.walletLinks.length - 1]
+    if (link) {
+      openWallet(link.address)
+    }
   }
 
   renderHistory() {

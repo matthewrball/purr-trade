@@ -9,6 +9,7 @@ import {
   getColorLuminance,
   splitColorCode
 } from '@/utils/colors'
+import { walletAddress } from './wallet'
 
 interface PreparedColorStep {
   from?: number
@@ -72,6 +73,7 @@ export default class TradesFeed {
   private lastTimestamp: number
   private timeUpdateInterval: number
   private marketsMultipliers: { [identifier: string]: number }
+  private walletThreshold: number
 
   constructor(paneId: string, containerElement: HTMLElement, maxCount: number) {
     this.paneId = paneId
@@ -256,6 +258,11 @@ export default class TradesFeed {
     colorStep: PreparedColorStep,
     significantAmount: number
   ) {
+    const wallet = walletAddress(
+      trade.user,
+      trade.size * (trade.avgPrice || trade.price),
+      this.walletThreshold
+    )
     let timestampClass = ''
     let timestampText = ''
 
@@ -311,7 +318,7 @@ export default class TradesFeed {
       colorStep.level
     }${trade.liquidation ? ' -liquidation' : ''}" title="${trade.exchange}:${
       trade.pair
-    }" style="${this.getTradeInlineStyles(
+    }" data-user="${walletAddress(trade.user, 0, 0)?.address || ''}" data-price="${trade.avgPrice || trade.price}" style="${this.getTradeInlineStyles(
       trade,
       colorStep,
       significantAmount
@@ -339,6 +346,11 @@ export default class TradesFeed {
         <span>${Math.round(trade.size * 1e6) / 1e6}</span>
       </span>
     </div>
+    ${
+      wallet
+        ? `<a class="trade__wallet" href="https://app.hyperliquid.xyz/explorer/address/${wallet.address}" target="_blank" rel="noopener noreferrer" title="${trade.liquidation ? 'Liquidated wallet' : 'First taker in this trade'}: ${wallet.address}">${wallet.text}</a>`
+        : ''
+    }
     <div class="trade__time ${timestampClass}" data-timestamp="${trade.timestamp.toString()}">${timestampText}</div>
     </li>`
   }
@@ -525,6 +537,7 @@ export default class TradesFeed {
     this.showPrices = store.state[this.paneId].showPrices
     this.showAvgPrice = store.state[this.paneId].showAvgPrice
     this.showTimeAgo = store.state[this.paneId].showTimeAgo
+    this.walletThreshold = store.state[this.paneId].walletThreshold
 
     if (this.showTimeAgo && !this.timeUpdateInterval) {
       this.setupTimeUpdateInterval()

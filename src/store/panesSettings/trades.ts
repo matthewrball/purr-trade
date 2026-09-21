@@ -41,6 +41,7 @@ export interface TradesPaneState {
   multipliers: { [identifier: string]: number }
   thresholdsMultipler: number
   showAvgPrice: boolean
+  walletThreshold: number
 }
 
 const getters = {
@@ -77,7 +78,8 @@ const state = {
   showPrices: true,
   showHistograms: true,
   thresholdsMultipler: 1,
-  showAvgPrice: true
+  showAvgPrice: true,
+  walletThreshold: 50000
 } as TradesPaneState
 
 const actions = {
