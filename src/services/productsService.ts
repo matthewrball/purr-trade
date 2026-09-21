@@ -571,7 +571,7 @@ export function getMarketLabel(market): string {
     ? market.pair.split(':')
     : ['', market.pair]
 
-  return coin + '-USDC' + (dex ? ' (' + dex + ')' : '')
+  return coin + 'USDC' + (dex ? ' (' + dex + ')' : '')
 }
 
 /**
