@@ -37,7 +37,7 @@ self.addEventListener('push', event => {
 self.addEventListener('notificationclick', function (event) {
   event.notification.close()
 
-  let url = 'https://aggr.trade'
+  let url = 'https://purr.trade'
 
   if (event.notification.data.url) {
     url = event.notification.data.url

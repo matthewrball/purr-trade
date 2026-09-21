@@ -215,7 +215,7 @@ class ImportService {
           !(await dialogService.confirm({
             title: 'Security Warning',
             message: `⚠️ Proceed with <strong>Caution</strong>!<br><br>
-            <p>Importing a custom script into AGGR poses security risks and AGGR is not liable for any consequences; ensure you trust the source and understand the risks before proceeding.</p>`,
+            <p>Importing a custom script into Purr poses security risks and Purr is not liable for any consequences; ensure you trust the source and understand the risks before proceeding.</p>`,
             ok: `Accept and Proceed`,
             requireScroll: true,
             html: true
@@ -248,7 +248,7 @@ class ImportService {
   async importDatabase(file) {
     if (
       !(await dialogService.confirm({
-        message: `This action will override ALL your aggr data.`,
+        message: `This action will override ALL your Purr data.`,
         ok: 'Yes override please',
         cancel: 'Cancel'
       })) ||
@@ -270,7 +270,7 @@ class ImportService {
 
     let id
 
-    const match = file.name.match(/aggr-(\w{4})/)
+    const match = file.name.match(/(?:purr|aggr)-(\w{4})/)
 
     if (match && match[1]) {
       id = match[1]

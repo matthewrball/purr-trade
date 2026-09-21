@@ -469,7 +469,7 @@ export function handleFetchError(err): void {
         store.dispatch('app/showNotice', {
           id: 'fetch-error',
           html: true,
-          title: `Failed to reach api<br><a href="https://github.com/Tucsky/aggr-server">Configure aggr-server</a> <strong>to use your own data</strong>`,
+          title: `Failed to reach api<br><a href="https://github.com/matthewrball/purr-trade-server">Configure a server</a> <strong>to use your own data</strong>`,
           type: 'error',
           timeout: 10000
         })

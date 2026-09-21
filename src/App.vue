@@ -175,7 +175,7 @@ export default class App extends Vue {
       this.price = null
       this.updateFavicon('neutral')
 
-      window.document.title = this.mainPair ? this.mainPair : 'AGGR'
+      window.document.title = this.mainPair ? this.mainPair : 'Purr'
     }
   }
 
