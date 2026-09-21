@@ -1,8 +1,8 @@
 {
-  "name": "SignificantTrades",
-  "short_name": "AGGR",
+  "name": "Purr",
+  "short_name": "Purr",
   "start_url": "/",
-  "description": "Cryptocurrency market trades aggregator",
+  "description": "Hyperliquid and crypto market trades aggregator",
   "display": "standalone",
   "id":"/",
   "icons":[

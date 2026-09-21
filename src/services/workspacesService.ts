@@ -23,7 +23,6 @@ import { PanesState } from '@/store/panes'
 import alertService, { MarketAlerts } from './alertService'
 import dialogService from './dialogService'
 import { stripStablePair } from './productsService'
-import notificationService from './notificationService'
 
 export interface AggrDB extends DBSchema {
   products: {
@@ -148,7 +147,7 @@ class WorkspacesService {
         },
         blocked() {
           alert(
-            'Aggr is trying to upgrade.\nClose any other window with aggr open in order to allow it to upgrade.'
+            'Purr is trying to upgrade.\nClose any other window with Purr open in order to allow it to upgrade.'
           )
           console.log(`[idb] blocked received`)
           // …
@@ -158,7 +157,7 @@ class WorkspacesService {
           // …
         },
         terminated() {
-          alert('Browser abnormally terminated the connection with aggr db.')
+          alert('Browser abnormally terminated the connection with Purr db.')
           console.log(`[idb] terminated received`)
           // …
         }
@@ -174,7 +173,7 @@ class WorkspacesService {
           console.log(err)
           alert(
             err.message +
-              '\n\nEither reset the browser data on this site or contact the devs on the github :\nhttps://github.com/Tucsky/aggr/issues/new'
+              '\n\nEither reset the browser data on this site or contact the devs on the github :\nhttps://github.com/matthewrball/purr-trade/issues/new'
           )
         })
     })
@@ -309,14 +308,6 @@ class WorkspacesService {
     }
 
     if (!workspace) {
-      if (
-        localStorage.getItem('settings') &&
-        /aggr.trade$/.test(window.location.hostname) &&
-        !notificationService.hasDismissed('legacy-redirection-notice')
-      ) {
-        this.showLegacyNotice()
-      }
-
       // create workspace, name it from url (or generate one)
       workspace = await this.createWorkspace(urlWorkspaceId)
 
@@ -854,25 +845,7 @@ class WorkspacesService {
       .sort((a, b) => b.updatedAt - a.updatedAt)
       .map(a => a.id)
 
-    downloadAnything(blob, 'aggr-' + workspaces.join('-'))
-  }
-
-  async showLegacyNotice() {
-    const stay = await dialogService.confirm({
-      title: 'Update notice',
-      message: `Welcome to aggr.trade ${
-        import.meta.env.VITE_APP_VERSION
-      }.<br>We are replacing the old version with the new on the main app.<br><br>If for some reasons you don't like it,<br>legacy app can still be found on <a href="https://legacy.aggr.trade">legacy.aggr.trade</a> ☺️`,
-      ok: 'Stay ',
-      cancel: 'Go back',
-      html: true
-    })
-
-    if (stay === false) {
-      window.location.href = 'https://legacy.aggr.trade/'
-    } else if (stay === true) {
-      notificationService.dismiss('legacy-redirection-notice')
-    }
+    downloadAnything(blob, 'purr-' + workspaces.join('-'))
   }
 }
 
