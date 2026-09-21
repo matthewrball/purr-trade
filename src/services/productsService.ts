@@ -80,6 +80,7 @@ const stablecoinPairLookup = new RegExp(
 const simplePairLookup = new RegExp(`^([A-Z0-9]{2,})[-/_]?([A-Z0-9]{3,})$`)
 
 const promisesOfProducts = {}
+let apiProductsUnavailable = false
 
 export const indexedProducts = {}
 
@@ -166,8 +167,9 @@ async function fetchExchangeProducts(
   )
 
   let data = []
+  let complete = true
 
-  for (const instruction of endpoints) {
+  const fetchEndpoint = async (instruction, index: number) => {
     let endpoint: {
       url: string
       method: string
@@ -203,14 +205,82 @@ async function fetchExchangeProducts(
         headers,
         method: endpoint.method,
         body: endpoint.data
-      }).then(response => response.json())
+      }).then(response => {
+        if (exchangeId === 'HYPERLIQUID' && !response.ok) {
+          throw new Error('Failed to fetch Hyperliquid products')
+        }
+        return response.json()
+      })
 
-      data[endpoints.indexOf(instruction)] = json
+      data[index] = json
+
+      if (exchangeId === 'HYPERLIQUID' && index === 2 && Array.isArray(json)) {
+        const dexProducts = await Promise.allSettled(
+          json
+            .filter(dex => dex && dex.name)
+            .map(async dex => {
+              const controller = new AbortController()
+              const timeout = setTimeout(() => controller.abort(), 2000)
+              try {
+                const response = await fetch(
+                  'https://api.hyperliquid.xyz/info',
+                  {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ type: 'meta', dex: dex.name }),
+                    signal: controller.signal
+                  }
+                )
+                if (!response.ok) {
+                  throw new Error(`Failed to fetch ${dex.name} products`)
+                }
+                return { ...(await response.json()), dex: dex.name }
+              } finally {
+                clearTimeout(timeout)
+              }
+            })
+        )
+        for (const result of dexProducts) {
+          if (result.status === 'fulfilled') {
+            data.push(result.value)
+          } else {
+            complete = false
+          }
+        }
+      }
     } catch (error) {
       console.error(`[${exchangeId}] couldn't parse non-json products`, error)
 
-      data[endpoints.indexOf(instruction)] = null
+      if (exchangeId === 'HYPERLIQUID' && index === 2) {
+        data[index] = []
+        complete = false
+      } else {
+        data[index] = null
+      }
     }
+  }
+
+  if (exchangeId === 'HYPERLIQUID') {
+    await Promise.all(endpoints.map(fetchEndpoint))
+  } else {
+    for (const [index, instruction] of endpoints.entries()) {
+      await fetchEndpoint(instruction, index)
+    }
+  }
+
+  if (!complete) {
+    const storage = await getExchangeStoredProductsData(exchangeId)
+    const cached = storage?.data
+    const products = Array.isArray(cached) ? cached : cached?.products || []
+    const loadedDexes = new Set(data.slice(3).map(meta => meta.dex))
+    // Keep cached dex markets usable while retrying an incomplete refresh.
+    data.push({
+      universe: products
+        .filter(
+          pair => pair.includes(':') && !loadedDexes.has(pair.split(':')[0])
+        )
+        .map(name => ({ name }))
+    })
   }
 
   if (data.indexOf(null) !== -1) {
@@ -229,6 +299,15 @@ async function fetchExchangeProducts(
         response: data
       }
     })) as ProductsStorage
+
+    if (productsData && !complete) {
+      await workspacesService.saveProducts({
+        exchange: exchangeId,
+        data: productsData,
+        timestamp: 0
+      })
+      return productsData
+    }
 
     if (productsData) {
       return saveExchangeProductsData(exchangeId, productsData).then(
@@ -267,6 +346,18 @@ export async function getStoredProductsOrFetch(
   } else {
     console.debug(`[products.${exchangeId}] using products exchange storage`)
     productsData = productsStorage.data
+  }
+
+  if (exchangeId === 'HYPERLIQUID' && productsData) {
+    const symbols = Array.isArray(productsData)
+      ? productsData
+      : productsData.products
+    store.commit('app/SET_HISTORICAL_MARKETS', [
+      ...new Set([
+        ...store.state.app.historicalMarkets,
+        ...symbols.map(pair => `HYPERLIQUID:${pair}`)
+      ])
+    ])
   }
 
   return productsData
@@ -314,12 +405,13 @@ export function getMarketProduct(exchangeId, symbol, noStable?: boolean) {
 
   let type = 'spot'
 
-  if (COMMON_FUTURES_SUFFIX_REGEX.test(symbol)) {
+  if (exchangeId === 'HYPERLIQUID') {
+    type = symbol.includes('/') ? 'spot' : 'perp'
+  } else if (COMMON_FUTURES_SUFFIX_REGEX.test(symbol)) {
     type = 'future'
   } else if (
     exchangeId === 'BINANCE_FUTURES' ||
     exchangeId === 'DYDX' ||
-    exchangeId === 'HYPERLIQUID' ||
     exchangeId === 'ASTER'
   ) {
     type = 'perp'
@@ -384,8 +476,8 @@ export function getMarketProduct(exchangeId, symbol, noStable?: boolean) {
     localSymbol = localSymbol.replace(KUCOIN_SUFFIX_REGEX, '')
   } else if (exchangeId === 'COINBASE' && type === 'perp') {
     localSymbol = localSymbol.replace(COINBASE_INTX_REGEX, '')
-  } else if (exchangeId === 'HYPERLIQUID') {
-    localSymbol = localSymbol.replace(/^k/, '') + 'USD'
+  } else if (exchangeId === 'HYPERLIQUID' && type === 'perp') {
+    localSymbol = localSymbol.replace(/^[^:]+:/, '').replace(/^k/, '') + 'USD'
   } else if (exchangeId === 'PHEMEX') {
     localSymbol = localSymbol.replace(/^[a-z]/, '')
   } else if (exchangeId === 'WHITEBIT') {
@@ -406,7 +498,12 @@ export function getMarketProduct(exchangeId, symbol, noStable?: boolean) {
   let localSymbolAlpha = localSymbol.replace(SYMBOL_DELIMITER_REGEX, '')
 
   let match
-  if (!EVERYTHING_BINANCE_REGEX.test(exchangeId)) {
+  if (exchangeId === 'HYPERLIQUID') {
+    match =
+      type === 'spot'
+        ? [localSymbol, ...localSymbol.split('/')]
+        : [localSymbol, localSymbol.slice(0, -3), 'USD']
+  } else if (!EVERYTHING_BINANCE_REGEX.test(exchangeId)) {
     match = localSymbol.match(currencyPairLookup)
   }
 
@@ -467,7 +564,12 @@ export async function getApiSupportedMarkets() {
     products = []
   }
 
-  if (!import.meta.env.VITE_APP_API_URL) {
+  // Client-direct HL history needs no API discovery. Other history is opt-in.
+  if (
+    !import.meta.env.VITE_APP_API_URL ||
+    apiProductsUnavailable ||
+    !products.some(market => !market.startsWith('HYPERLIQUID:'))
+  ) {
     return products
   }
 
@@ -494,11 +596,14 @@ export async function getApiSupportedMarkets() {
   }
 
   try {
-    const products = await fetch(getApiUrl('products')).then(response =>
-      response.json()
-    )
+    const products = await fetch(getApiUrl('products')).then(response => {
+      if (!response.ok) {
+        throw new Error('API products unavailable')
+      }
+      return response.json()
+    })
 
-    if (!products.length) {
+    if (!Array.isArray(products) || !products.length) {
       throw new Error('invalid supported markets list')
     }
 
@@ -512,7 +617,7 @@ export async function getApiSupportedMarkets() {
 
     return products
   } catch (error) {
-    console.error(error)
+    apiProductsUnavailable = true
   }
 
   return products

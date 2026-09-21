@@ -80,7 +80,7 @@
 </template>
 
 <script lang="ts">
-import { Component, Mixins } from 'vue-property-decorator'
+import { Component, Mixins, Watch } from 'vue-property-decorator'
 
 import { Trade } from '@/types/types'
 
@@ -118,6 +118,18 @@ export default class Trades extends Mixins(PaneMixin) {
 
   get thresholdsMultipler() {
     return this.$store.state[this.paneId].thresholdsMultipler
+  }
+
+  get walletThreshold() {
+    return (this.$store.state[this.paneId] as TradesPaneState).walletThreshold
+  }
+
+  @Watch('walletThreshold')
+  onWalletThresholdChange() {
+    if (this.feed) {
+      this.feed.cachePreferences()
+      this.refreshList()
+    }
   }
 
   get minAmount() {
@@ -235,10 +247,7 @@ export default class Trades extends Mixins(PaneMixin) {
       const timestamp = element
         .querySelector('.trade__time')
         .getAttribute('data-timestamp')
-      const price =
-        parseFloat(
-          (element.querySelector('.trade__price') as HTMLElement)?.innerText
-        ) || 0
+      const price = Number(element.getAttribute('data-price')) || 0
       const size =
         parseFloat(
           (element.querySelector('.trade__amount__base') as HTMLElement)
@@ -257,7 +266,8 @@ export default class Trades extends Mixins(PaneMixin) {
         avgPrice: price,
         amount,
         size,
-        side
+        side,
+        user: element.getAttribute('data-user') || undefined
       }
 
       if (element.classList.contains('-liquidation')) {
@@ -508,6 +518,13 @@ export default class Trades extends Mixins(PaneMixin) {
         display: none;
       }
     }
+  }
+
+  .trade__wallet {
+    color: inherit;
+    white-space: nowrap;
+    margin-left: 0.5em;
+    font-size: 0.8em;
   }
 
   .trade__time {

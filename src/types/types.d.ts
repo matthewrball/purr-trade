@@ -41,6 +41,7 @@ export interface Trade {
   price: number
   size: number
   side: 'buy' | 'sell'
+  user?: string
   originalPrice?: number
   avgPrice?: number
   amount?: number

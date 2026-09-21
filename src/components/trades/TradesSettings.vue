@@ -241,6 +241,24 @@
         />
       </div>
 
+      <div class="form-group column mb8">
+        <label
+          :for="paneId + '-wallet-threshold'"
+          class="-fill -center -inline"
+        >
+          Wallet address minimum ($)
+        </label>
+        <input
+          type="number"
+          min="0"
+          step="1000"
+          class="form-control"
+          :id="paneId + '-wallet-threshold'"
+          :value="walletThreshold"
+          @change="setWalletThreshold($event.target.value)"
+        />
+      </div>
+
       <div
         v-if="isLegacy"
         class="form-group column"
@@ -398,6 +416,7 @@
 <script lang="ts">
 import { TradesPaneState } from '@/store/panesSettings/trades'
 import { ago } from '@/utils/helpers'
+import { scheduleSync } from '@/utils/store'
 import { Component, Vue } from 'vue-property-decorator'
 import Slider from '@/components/framework/picker/Slider.vue'
 import Thresholds from '@/components/settings/Thresholds.vue'
@@ -451,6 +470,19 @@ export default class TradesSettings extends Vue {
 
   get maxRows() {
     return (this.$store.state[this.paneId] as TradesPaneState).maxRows
+  }
+
+  get walletThreshold() {
+    return (this.$store.state[this.paneId] as TradesPaneState).walletThreshold
+  }
+
+  setWalletThreshold(value: string) {
+    const state = this.$store.state[this.paneId] as TradesPaneState
+    const threshold = Number(value)
+    if (Number.isFinite(threshold)) {
+      state.walletThreshold = Math.max(0, threshold)
+      scheduleSync(state)
+    }
   }
 
   get thresholds() {
