@@ -21,7 +21,7 @@
       <i class="icon-flip"></i>
       <span>Flip</span>
     </button>
-    <template v-if="price">
+    <template v-if="pushAlertsAvailable && price">
       <template v-if="alert">
         <div class="dropdown-divider" :data-label="`@${priceFormatted}`"></div>
         <button @click="removeAlert" class="dropdown-item">
@@ -90,6 +90,7 @@ import { formatMarketPrice } from '@/services/productsService'
 import dialogService from '@/services/dialogService'
 import alertService, { MarketAlert } from '@/services/alertService'
 import { ChartPaneState } from '@/store/panesSettings/chart'
+import { ALERTS_ENABLED } from '@/utils/constants'
 
 export default {
   name: 'ChartContextMenu',
@@ -132,7 +133,8 @@ export default {
   },
   data: () => ({
     alertsDropdownTrigger: null,
-    alertsDropdownSettingsTrigger: null
+    alertsDropdownSettingsTrigger: null,
+    pushAlertsAvailable: ALERTS_ENABLED
   }),
   computed: {
     timeframeForHuman() {

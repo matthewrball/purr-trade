@@ -35,7 +35,7 @@
               @click.stop.prevent
             />
             <div></div>
-            <span>{{ market }}</span>
+            <span :title="market">{{ marketsLabels[market] }}</span>
           </label>
         </div>
       </div>
@@ -57,6 +57,7 @@
 <script lang="ts">
 import Vue from 'vue'
 import Component from 'vue-class-component'
+import { getMarketLabel } from '@/services/productsService'
 
 @Component({
   name: 'MarketsOverlay',
@@ -72,6 +73,21 @@ export default class MarketsOverlay extends Vue {
 
   get markets() {
     return this.$store.state.panes.panes[this.paneId].markets
+  }
+
+  get marketsLabels() {
+    const marketsListeners = this.$store.state.panes.marketsListeners
+
+    return this.markets.reduce((labels, market) => {
+      const product = marketsListeners[market]
+
+      labels[market] =
+        product && product.exchange === 'HYPERLIQUID'
+          ? getMarketLabel(product)
+          : market
+
+      return labels
+    }, {})
   }
 
   get hiddenMarkets() {

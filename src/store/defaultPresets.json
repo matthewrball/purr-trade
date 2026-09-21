@@ -80,38 +80,107 @@
     }
   },
   {
-    "name": "threshold:100k+",
+    "name": "threshold:HYPE perp",
     "type": "threshold",
+    "version": "3.8.3",
     "data": {
       "0": {
-        "amount": 100000
+        "amount": 5000,
+        "buyColor": "rgba(119, 148, 92, 0.25)",
+        "sellColor": "rgba(239, 67, 82, 0.25)",
+        "buyAudio": "play(659.26, gain / 10, 0.1 + gain / 7)",
+        "sellAudio": "play(493.88, gain * 1.5 / 10, 0.1 + gain / 7)"
       },
       "1": {
-        "amount": 250000
+        "amount": 12500,
+        "buyColor": "rgb(100, 157, 102)",
+        "sellColor": "rgb(239, 67, 82)",
+        "buyAudio": "play(659.26, 0.05 + gain / 10, 0.2 + ratio * 0.23,0,,0); play(830.6, 0.05 + gain / 10, 0.2 + ratio * 0.23, 0.08,,0)",
+        "sellAudio": "play(493.88, 0.05 + gain * 1.5 / 10, 0.2 + ratio * 0.23,0,,0); play(392, 0.05 + gain * 1.5 / 10, 0.2 + ratio * 0.23, 0.08,,0)"
       },
       "2": {
-        "amount": 1000000
+        "amount": 50000,
+        "buyColor": "rgb(59, 202, 109)",
+        "sellColor": "rgb(235, 30, 47)",
+        "buyAudio": "play(659.26, 0.05 + gain / 25, 0.1 + ratio * 0.23, 0,,0); play(830.6, 0.05 + gain / 25, 0.1 + ratio * 0.23, 0.08,,0); play(987.76, 0.05 + gain / 25, 0.1 + ratio * 0.23, 0.16,,0); play(1318.52, 0.05 + gain / 10, 0.1 + ratio * 0.23, 0.24,,0)",
+        "sellAudio": "play(493.88, 0.05 + gain / 25, 0.1 + ratio * 0.23, 0,,0); play(369.99, 0.05 + gain * 1.5 / 10, 0.2, 0.08,,0); play(293.66, 0.05 + gain * 1.5 / 10, 0.2, 0.16,,0); play(246.94, 0.05 + gain * 1.5 / 10, 0.1 + ratio * 0.23, 0.24,,0)"
       },
       "3": {
-        "amount": 10000000
+        "amount": 500000,
+        "buyColor": "rgb(0, 255, 127)",
+        "sellColor": "rgb(217, 31, 28)",
+        "buyAudio": "play(659.26, 0.05 + gain / 25, 0.1 + ratio * 0.13, 0,,0); play(830.6, 0.05 + gain / 25, 0.1 + ratio * 0.13, 0.08,,0); play(987.76, 0.05 + gain / 25, 0.1 + ratio * 0.13, 0.16,,0); play(1318.52, 0.05 + gain / 10, 0.1 + ratio * 0.13, 0.24,,0)",
+        "sellAudio": "play(493.88, 0.05 + gain / 25, 0.1 + ratio * 0.13, 0,,0); play(369.99, 0.05 + gain * 1.5 / 10, 0.2, 0.08,,0); play(293.66, 0.05 + gain * 1.5 / 10, 0.2, 0.16,,0); play(246.94, 0.05 + gain * 1.5 / 10, 0.1 + ratio * 0.13, 0.24,,0)"
       }
     }
   },
   {
-    "name": "threshold:250k+",
+    "name": "threshold:HL spot",
     "type": "threshold",
+    "version": "3.8.3",
     "data": {
       "0": {
-        "amount": 250000
+        "amount": 1000,
+        "buyColor": "rgba(119, 148, 92, 0.25)",
+        "sellColor": "rgba(239, 67, 82, 0.25)",
+        "buyAudio": "play(659.26, gain / 10, 0.1 + gain / 7)",
+        "sellAudio": "play(493.88, gain * 1.5 / 10, 0.1 + gain / 7)"
       },
       "1": {
-        "amount": 500000
+        "amount": 2500,
+        "buyColor": "rgb(100, 157, 102)",
+        "sellColor": "rgb(239, 67, 82)",
+        "buyAudio": "play(659.26, 0.05 + gain / 10, 0.2 + ratio * 0.23,0,,0); play(830.6, 0.05 + gain / 10, 0.2 + ratio * 0.23, 0.08,,0)",
+        "sellAudio": "play(493.88, 0.05 + gain * 1.5 / 10, 0.2 + ratio * 0.23,0,,0); play(392, 0.05 + gain * 1.5 / 10, 0.2 + ratio * 0.23, 0.08,,0)"
       },
       "2": {
-        "amount": 2000000
+        "amount": 10000,
+        "buyColor": "rgb(59, 202, 109)",
+        "sellColor": "rgb(235, 30, 47)",
+        "buyAudio": "play(659.26, 0.05 + gain / 25, 0.1 + ratio * 0.23, 0,,0); play(830.6, 0.05 + gain / 25, 0.1 + ratio * 0.23, 0.08,,0); play(987.76, 0.05 + gain / 25, 0.1 + ratio * 0.23, 0.16,,0); play(1318.52, 0.05 + gain / 10, 0.1 + ratio * 0.23, 0.24,,0)",
+        "sellAudio": "play(493.88, 0.05 + gain / 25, 0.1 + ratio * 0.23, 0,,0); play(369.99, 0.05 + gain * 1.5 / 10, 0.2, 0.08,,0); play(293.66, 0.05 + gain * 1.5 / 10, 0.2, 0.16,,0); play(246.94, 0.05 + gain * 1.5 / 10, 0.1 + ratio * 0.23, 0.24,,0)"
       },
       "3": {
-        "amount": 10000000
+        "amount": 50000,
+        "buyColor": "rgb(0, 255, 127)",
+        "sellColor": "rgb(217, 31, 28)",
+        "buyAudio": "play(659.26, 0.05 + gain / 25, 0.1 + ratio * 0.13, 0,,0); play(830.6, 0.05 + gain / 25, 0.1 + ratio * 0.13, 0.08,,0); play(987.76, 0.05 + gain / 25, 0.1 + ratio * 0.13, 0.16,,0); play(1318.52, 0.05 + gain / 10, 0.1 + ratio * 0.13, 0.24,,0)",
+        "sellAudio": "play(493.88, 0.05 + gain / 25, 0.1 + ratio * 0.13, 0,,0); play(369.99, 0.05 + gain * 1.5 / 10, 0.2, 0.08,,0); play(293.66, 0.05 + gain * 1.5 / 10, 0.2, 0.16,,0); play(246.94, 0.05 + gain * 1.5 / 10, 0.1 + ratio * 0.13, 0.24,,0)"
+      }
+    }
+  },
+  {
+    "name": "threshold:HIP-3 small cap",
+    "type": "threshold",
+    "version": "3.8.3",
+    "data": {
+      "0": {
+        "amount": 500,
+        "buyColor": "rgba(119, 148, 92, 0.25)",
+        "sellColor": "rgba(239, 67, 82, 0.25)",
+        "buyAudio": "play(659.26, gain / 10, 0.1 + gain / 7)",
+        "sellAudio": "play(493.88, gain * 1.5 / 10, 0.1 + gain / 7)"
+      },
+      "1": {
+        "amount": 1000,
+        "buyColor": "rgb(100, 157, 102)",
+        "sellColor": "rgb(239, 67, 82)",
+        "buyAudio": "play(659.26, 0.05 + gain / 10, 0.2 + ratio * 0.23,0,,0); play(830.6, 0.05 + gain / 10, 0.2 + ratio * 0.23, 0.08,,0)",
+        "sellAudio": "play(493.88, 0.05 + gain * 1.5 / 10, 0.2 + ratio * 0.23,0,,0); play(392, 0.05 + gain * 1.5 / 10, 0.2 + ratio * 0.23, 0.08,,0)"
+      },
+      "2": {
+        "amount": 5000,
+        "buyColor": "rgb(59, 202, 109)",
+        "sellColor": "rgb(235, 30, 47)",
+        "buyAudio": "play(659.26, 0.05 + gain / 25, 0.1 + ratio * 0.23, 0,,0); play(830.6, 0.05 + gain / 25, 0.1 + ratio * 0.23, 0.08,,0); play(987.76, 0.05 + gain / 25, 0.1 + ratio * 0.23, 0.16,,0); play(1318.52, 0.05 + gain / 10, 0.1 + ratio * 0.23, 0.24,,0)",
+        "sellAudio": "play(493.88, 0.05 + gain / 25, 0.1 + ratio * 0.23, 0,,0); play(369.99, 0.05 + gain * 1.5 / 10, 0.2, 0.08,,0); play(293.66, 0.05 + gain * 1.5 / 10, 0.2, 0.16,,0); play(246.94, 0.05 + gain * 1.5 / 10, 0.1 + ratio * 0.23, 0.24,,0)"
+      },
+      "3": {
+        "amount": 25000,
+        "buyColor": "rgb(0, 255, 127)",
+        "sellColor": "rgb(217, 31, 28)",
+        "buyAudio": "play(659.26, 0.05 + gain / 25, 0.1 + ratio * 0.13, 0,,0); play(830.6, 0.05 + gain / 25, 0.1 + ratio * 0.13, 0.08,,0); play(987.76, 0.05 + gain / 25, 0.1 + ratio * 0.13, 0.16,,0); play(1318.52, 0.05 + gain / 10, 0.1 + ratio * 0.13, 0.24,,0)",
+        "sellAudio": "play(493.88, 0.05 + gain / 25, 0.1 + ratio * 0.13, 0,,0); play(369.99, 0.05 + gain * 1.5 / 10, 0.2, 0.08,,0); play(293.66, 0.05 + gain * 1.5 / 10, 0.2, 0.16,,0); play(246.94, 0.05 + gain * 1.5 / 10, 0.1 + ratio * 0.13, 0.24,,0)"
       }
     }
   },

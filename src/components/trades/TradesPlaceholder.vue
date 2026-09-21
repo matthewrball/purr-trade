@@ -114,6 +114,14 @@ export default class TradesPlaceholder extends Vue {
     } else if (this.showTrades) {
       return `Waiting for trades > ${formatAmount(minimumTradeAmount)}`
     } else if (this.showLiquidations) {
+      if (
+        !import.meta.env.VITE_APP_LIQUIDATIONS_URL &&
+        this.paneMarkets.length &&
+        this.paneMarkets.every(market => market.startsWith('HYPERLIQUID:'))
+      ) {
+        return 'Hyperliquid liquidation feed offline'
+      }
+
       return `Waiting for liquidations > ${formatAmount(
         minimumLiquidationAmount
       )}`

@@ -100,6 +100,7 @@
           <i class="icon-plus" />
         </button>
         <button
+          v-if="alertsEnabled"
           class="dropdown-item dropdown-item--space-between"
           @click="addPane('alerts')"
         >
@@ -179,6 +180,7 @@ import dialogService from '@/services/dialogService'
 import { PaneType } from '@/store/panes'
 import { Component, Vue } from 'vue-property-decorator'
 import { isTouchSupported } from '../utils/touchevent'
+import { ALERTS_ENABLED } from '../utils/constants'
 import Slider from './framework/picker/Slider.vue'
 import SettingsDialog from './settings/SettingsDialog.vue'
 
@@ -192,6 +194,7 @@ export default class Menu extends Vue {
   volumeSliderOpened = false
   isFullscreen = false
   open = false
+  alertsEnabled = ALERTS_ENABLED
 
   $refs!: {
     volumeSlider: any

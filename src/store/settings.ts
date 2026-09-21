@@ -64,7 +64,11 @@ const state = Object.assign(
   {
     _id: 'settings'
   },
-  DEFAULTS_STATE
+  DEFAULTS_STATE,
+  {
+    // new workspaces chart in local time (stored workspaces keep their value)
+    timezoneOffset: new Date().getTimezoneOffset() * 60000 * -1
+  }
 ) as SettingsState
 
 const actions = {

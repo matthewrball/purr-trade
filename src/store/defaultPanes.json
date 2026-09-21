@@ -21,17 +21,6 @@
       "settings": {
         "showLiquidations": false
       }
-    },
-    "liquidations": {
-      "id": "liquidations",
-      "name": "REKTS",
-      "type": "trades",
-      "markets": [
-        "HYPERLIQUID:HYPE"
-      ],
-      "settings": {
-        "showTrades": false
-      }
     }
   },
   "marketsListeners": {},

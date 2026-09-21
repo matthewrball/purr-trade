@@ -26,7 +26,7 @@
     "enabled": true,
     "name": "Volume",
     "description": "Volume + delta",
-    "script": "if (upColor === 0) {\n  if (options.showDelta) {\n    upColor = options.upBgColor\n    downColor = options.downBgColor\n  } else {\n    upColor = options.upColor\n    downColor = options.downColor\n  }\n}\n\nif (options.showDelta) {\n  histogram({ time: time, value: Math.abs(vbuy-vsell), color: vbuy - vsell > 0 ? options.upColor : options.downColor})\n}\n\nhistogram({ time: time, value: vbuy + vsell, color: vbuy > vsell ? upColor : downColor })",
+    "script": "if (upColor === 0) {\n  if (options.showDelta) {\n    upColor = options.upBgColor\n    downColor = options.downBgColor\n  } else {\n    upColor = options.upColor\n    downColor = options.downColor\n  }\n}\n\nif (options.showDelta) {\n  histogram({ time: time, value: Math.abs(vbuy-vsell), color: vbuy - vsell > 0 ? options.upColor : options.downColor})\n}\n\nvar ohlc = avg_ohlc(bar)\nhistogram({ time: time, value: vbuy + vsell, color: vbuy > vsell ? upColor : (vbuy < vsell ? downColor : (ohlc.close >= ohlc.open ? upColor : downColor)) })",
     "options": {
       "priceFormat": {
         "type": "volume"
@@ -44,7 +44,7 @@
     }
   },
   "liquidations": {
-    "enabled": true,
+    "enabled": false,
     "name": "Liquidations",
     "description": "Liquidations by side",
     "script": "histogram(lbuy, color=options.upColor)\nhistogram(-lsell, color=options.downColor)",

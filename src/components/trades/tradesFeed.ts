@@ -1,6 +1,10 @@
 import audioService, { AudioFunction } from '@/services/audioService'
 import gifsService from '@/services/gifsService'
-import { formatAmount, formatMarketPrice } from '@/services/productsService'
+import {
+  formatAmount,
+  formatMarketPrice,
+  getMarketLabel
+} from '@/services/productsService'
 import store from '@/store'
 import { SlippageMode, Trade } from '@/types/types'
 import {
@@ -98,10 +102,14 @@ export default class TradesFeed {
         continue
       }
 
-      const trade = trades[i]
+      let trade = trades[i]
 
       if (typeof this.marketsMultipliers[marketKey] !== 'undefined') {
-        trade.amount /= this.marketsMultipliers[marketKey]
+        // copy, the same Trade objects are shared with every other listener
+        trade = {
+          ...trade,
+          amount: trade.amount / this.marketsMultipliers[marketKey]
+        }
       }
 
       if (!trade.liquidation && this.showTrades) {
@@ -308,10 +316,13 @@ export default class TradesFeed {
     let pairName = ''
 
     if (this.showPairs) {
-      pairName = `<div class="trade__pair">${trade.pair.replace(
-        '_',
-        ' '
-      )}</div>`
+      const market = store.state.panes.marketsListeners[marketKey]
+
+      pairName = `<div class="trade__pair">${
+        trade.exchange === 'HYPERLIQUID' && market
+          ? getMarketLabel(market)
+          : trade.pair.replace('_', ' ')
+      }</div>`
     }
 
     return `<li class="trade -${trade.exchange} -${trade.side} -level-${

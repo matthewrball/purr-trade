@@ -59,7 +59,10 @@ class AggregatorService extends EventEmitter {
       store.dispatch('app/showNotice', {
         id: `ws-error-${event.originalUrl}`,
         type: 'error',
-        title: `unable to reach ${event.exchangeId} (${event.originalUrl})`,
+        title:
+          event.exchangeId === 'HYPERLIQUID'
+            ? `unable to reach Hyperliquid (a blocker, or too many open tabs?)`
+            : `unable to reach ${event.exchangeId} (${event.originalUrl})`,
         action: async () => {
           const payload = await dialogService.openAsPromise(
             (await import('@/components/ConnectionIssueDialog.vue')).default,

@@ -1,6 +1,7 @@
 .DS_Store
 node_modules
 /dist
+/public/catalogs
 src-tauri
 stats.html
 dev-dist

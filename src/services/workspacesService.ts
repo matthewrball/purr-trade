@@ -300,6 +300,12 @@ class WorkspacesService {
     if (urlWorkspaceId) {
       // try get workspace from id in the url
       workspace = await this.getWorkspace(urlWorkspaceId)
+
+      if (!workspace && !urlPairs && this.urlStrategy !== 'hash') {
+        // single segment that isn't a workspace id (/HYPE, /hype-usdc, /xyz:tsla)
+        // open it in its own workspace, never over the visitor's current one
+        return this.getUrlSegmentWorkspace(urlWorkspaceId, lastWorkspaceId)
+      }
     }
 
     if (!workspace && lastWorkspaceId) {
@@ -327,6 +333,130 @@ class WorkspacesService {
     }
 
     return workspace
+  }
+
+  /**
+   * Workspace for a single url segment that isn't a workspace id
+   * 1. lowercased id (slugified ids are lowercase)
+   * 2. Hyperliquid market : its own workspace named after the coin
+   * 3. other markets (> 4 chars) : new workspace, pairs resolved on boot
+   * 4. anything else (stale id) : last workspace, or a new one
+   * @returns {Workspace} workspace ready to be set on
+   */
+  async getUrlSegmentWorkspace(segment: string, lastWorkspaceId: string) {
+    let workspace: Workspace
+
+    if (segment.toLowerCase() !== segment) {
+      workspace = await this.getWorkspace(segment.toLowerCase())
+    }
+
+    if (workspace) {
+      return workspace
+    }
+
+    const coin = await this.resolveHyperliquidCoin(segment)
+
+    if (coin) {
+      // reopen the coin's workspace rather than creating a copy
+      return (
+        (await this.getWorkspace(slugify(coin))) ||
+        this.createWorkspace(coin, ['HYPERLIQUID:' + coin])
+      )
+    }
+
+    if (segment.trim().length > 4) {
+      this.pairsFromURL = segment
+        .split(/\+|,/)
+        .map(pair => stripStablePair(pair.toUpperCase()))
+
+      return this.createWorkspace(segment)
+    }
+
+    if (lastWorkspaceId) {
+      workspace = await this.getWorkspace(lastWorkspaceId)
+    }
+
+    return workspace || this.createWorkspace(segment)
+  }
+
+  /**
+   * Hyperliquid coin named by an url segment, case-insensitive
+   * exact name first (kPEPE, xyz:TSLA), then without its quote (hype-usdc, hypeusdc)
+   * reads stored products, else one meta request (store isn't registered yet)
+   * @returns {string} coin (HYPE, xyz:TSLA) or null
+   */
+  async resolveHyperliquidCoin(segment: string): Promise<string> {
+    const name = segment.trim().replace(/^HYPERLIQUID:/i, '')
+    const base = name.replace(/[-_/]?(USDC|USDT|USDH|USD|PERP)$/i, '')
+    const candidates = base && base !== name ? [name, base] : [name]
+    const find = (coins: string[]) => {
+      const perps = coins.filter(coin => coin.indexOf('/') === -1)
+
+      for (const candidate of candidates) {
+        const lowerCandidate = candidate.toLowerCase()
+        const coin =
+          perps.find(perp => perp === candidate) ||
+          perps.find(perp => perp.toLowerCase() === lowerCandidate)
+
+        if (coin) {
+          return coin
+        }
+      }
+
+      return null
+    }
+
+    try {
+      const storage = await this.getProducts('HYPERLIQUID')
+      const products =
+        storage &&
+        storage.data &&
+        (Array.isArray(storage.data) ? storage.data : storage.data.products)
+
+      if (Array.isArray(products)) {
+        const coin = find(products)
+
+        if (coin) {
+          return coin
+        }
+      }
+    } catch (error) {
+      console.error(error)
+    }
+
+    const [, dex] = name.match(/^([^:]+):/) || []
+    const controller = new AbortController()
+    const timeout = setTimeout(() => controller.abort(), 3000)
+
+    try {
+      const response = await fetch('https://api.hyperliquid.xyz/info', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(
+          dex ? { type: 'meta', dex: dex.toLowerCase() } : { type: 'meta' }
+        ),
+        signal: controller.signal
+      })
+
+      if (response.ok) {
+        const meta = await response.json()
+
+        return find(
+          meta.universe
+            .filter(product => !product.isDelisted)
+            .map(product => product.name)
+        )
+      }
+    } catch (error) {
+      console.warn(
+        `[workspaces] couldn't resolve ${name} on Hyperliquid`,
+        error
+      )
+    } finally {
+      clearTimeout(timeout)
+    }
+
+    return null
   }
 
   async setCurrentWorkspace(workspace: Workspace) {
@@ -490,10 +620,16 @@ class WorkspacesService {
     return workspace
   }
 
-  async createWorkspace(name) {
+  async createWorkspace(name, markets?: string[]) {
     const timestamp = Date.now()
 
     const panes = JSON.parse(JSON.stringify(defaultPanes))
+
+    if (markets) {
+      for (const paneId in panes.panes) {
+        panes.panes[paneId].markets = markets.slice()
+      }
+    }
 
     const workspace: Workspace = {
       version: this.latestWorkspaceVersion,

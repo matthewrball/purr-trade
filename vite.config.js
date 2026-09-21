@@ -7,8 +7,6 @@ import monacoEditorPlugin from 'vite-plugin-monaco-editor'
 import { qrcode } from 'vite-plugin-qrcode'
 import svgLoader from 'vite-svg-loader'
 
-import crypto from 'crypto'
-
 let date
 
 if (typeof gitprocess === 'function') {
@@ -75,12 +73,6 @@ export default defineConfig(({ mode }) => {
     }, {})
   }
 
-  const hash = crypto
-    .createHash('md5')
-    .update('aggr')
-    .digest('hex')
-    .substring(0, 7)
-
   return {
     define: {
       ...processEnvValues
@@ -100,9 +92,9 @@ export default defineConfig(({ mode }) => {
       minify: 'terser',
       rollupOptions: {
         output: {
-          entryFileNames: `[name].` + hash + `.js`,
-          chunkFileNames: `[name].` + hash + `.js`,
-          assetFileNames: `[name].` + hash + `.[ext]`
+          entryFileNames: `assets/[name].[hash].js`,
+          chunkFileNames: `assets/[name].[hash].js`,
+          assetFileNames: `assets/[name].[hash].[ext]`
         }
       },
       terserOptions: {

@@ -11,6 +11,7 @@ import {
   sleep
 } from '@/utils/helpers'
 import { isTouchSupported } from '@/utils/touchevent'
+import { ALERTS_ENABLED } from '@/utils/constants'
 import {
   IPriceLine,
   MouseEventParams,
@@ -59,13 +60,11 @@ export default class ChartControl {
     const canvas = this.chart.chartElement
 
     // bind click
-    if (import.meta.env.VITE_APP_PUBLIC_VAPID_KEY) {
-      this.clickHandler = this.onClick.bind(this)
-      canvas.addEventListener(
-        isTouchSupported() ? 'touchstart' : 'mousedown',
-        this.clickHandler
-      )
-    }
+    this.clickHandler = this.onClick.bind(this)
+    canvas.addEventListener(
+      isTouchSupported() ? 'touchstart' : 'mousedown',
+      this.clickHandler
+    )
     this.contextMenuHandler = this.onContextMenu.bind(this)
     canvas.addEventListener('contextmenu', this.contextMenuHandler)
 
@@ -98,11 +97,9 @@ export default class ChartControl {
     // unbind click / context menu
     const canvas = this.chart.chartElement
 
-    if (import.meta.env.VITE_APP_PUBLIC_VAPID_KEY) {
-      const clickEventName = isTouchSupported() ? 'touchstart' : 'mousedown'
-      canvas.removeEventListener(clickEventName, this.clickHandler)
-      this.clickHandler = null
-    }
+    const clickEventName = isTouchSupported() ? 'touchstart' : 'mousedown'
+    canvas.removeEventListener(clickEventName, this.clickHandler)
+    this.clickHandler = null
     canvas.removeEventListener('contextmenu', this.contextMenuHandler)
     this.contextMenuHandler = null
 
@@ -362,7 +359,7 @@ export default class ChartControl {
 
     if (event.shiftKey) {
       this.activeEvent = new MeasurementEventHandler(this.chart, event)
-    } else if (store.state.settings.alerts) {
+    } else if (ALERTS_ENABLED && store.state.settings.alerts) {
       if (previousEventBusy) {
         return
       }

@@ -169,6 +169,10 @@ async function fetchExchangeProducts(
   let data = []
   let complete = true
 
+  // Must match catalogName() in scripts/build-catalogs.mjs
+  const catalogName = (url: string) =>
+    url.replace(/^https:\/\//, '').replace(/[^a-zA-Z0-9.-]+/g, '_')
+
   const fetchEndpoint = async (instruction, index: number) => {
     let endpoint: {
       url: string
@@ -184,6 +188,34 @@ async function fetchExchangeProducts(
       }
     } else {
       endpoint = instruction
+    }
+
+    const originalUrl = endpoint.url
+
+    if (
+      endpoint.proxy !== false &&
+      (!endpoint.method || endpoint.method === 'GET') &&
+      !/^https:\/\/raw.githubusercontent.com\//.test(originalUrl)
+    ) {
+      // static catalog snapshot built at deploy time, proxy is the fallback
+      try {
+        const response = await fetch(
+          import.meta.env.BASE_URL +
+            'catalogs/' +
+            catalogName(originalUrl) +
+            '.json'
+        )
+
+        if (
+          response.ok &&
+          (response.headers.get('content-type') || '').includes('json')
+        ) {
+          data[index] = await response.json()
+          return
+        }
+      } catch (error) {
+        console.debug(`[${exchangeId}] no static catalog for ${originalUrl}`)
+      }
     }
 
     if (
