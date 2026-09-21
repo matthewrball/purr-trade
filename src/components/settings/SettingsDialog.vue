@@ -387,13 +387,6 @@
           </button>
         </dropdown>
       </span>
-      <a
-        class="settings-footer__fork"
-        href="https://github.com/Tucsky/aggr"
-        target="_blank"
-      >
-        Fork of aggr by Tucsky
-      </a>
     </template>
   </Dialog>
 </template>
@@ -793,18 +786,6 @@ export default {
   opacity: 0.5;
   line-height: 1;
   align-self: center;
-}
-
-.settings-dialog .dialog__footer {
-  flex-wrap: wrap;
-}
-
-.settings-footer__fork {
-  flex-basis: 100%;
-  padding: 0.25rem 0.5rem 0;
-  font-size: 0.75rem;
-  opacity: 0.75;
-  color: inherit;
 }
 
 .settings-exchanges {

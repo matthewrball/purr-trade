@@ -1,7 +1,7 @@
 export default [
   {
     label: 'interpolate',
-    detail: '[AGGR] get color gradient value',
+    detail: '[PURR] get color gradient value',
     insertText: `
 colorA = option(type=color,default=yellow)
 colorB = option(type=color,default=red)
@@ -10,92 +10,92 @@ interpolate(ratio, colorA, colorB)
   },
   {
     label: 'avg_ohlc',
-    detail: '[AGGR] avg OHLC (open = prev. close)',
+    detail: '[PURR] avg OHLC (open = prev. close)',
     insertText: `avg_ohlc(bar)`
   },
   {
     label: 'avg_ohlc_with_gaps',
-    detail: '[AGGR] avg OHLC',
+    detail: '[PURR] avg OHLC',
     insertText: `avg_ohlc_with_gaps(bar)`
   },
   {
     label: 'avg_heikinashi',
-    detail: '[AGGR] avg HEIKINASHI',
+    detail: '[PURR] avg HEIKINASHI',
     insertText: `avg_heikinashi(bar)`
   },
   {
     label: 'cum',
-    detail: '[AGGR] cumulative',
+    detail: '[PURR] cumulative',
     insertText: `cum(value)`
   },
   {
     label: 'pivot_high',
-    detail: '[AGGR] find pivot HIGH',
+    detail: '[PURR] find pivot HIGH',
     insertText: `pivot_high(14, 14)`
   },
   {
     label: 'pivot_low',
-    detail: '[AGGR] find pivot LOW',
+    detail: '[PURR] find pivot LOW',
     insertText: `pivot_low(14, 14)`
   },
   {
     label: 'highest',
-    detail: '[AGGR] highest of the last n (ex: 14) bars',
+    detail: '[PURR] highest of the last n (ex: 14) bars',
     insertText: `highest(value, 14)`
   },
   {
     label: 'lowest',
-    detail: '[AGGR] lowest of the last n (ex: 14) bars',
+    detail: '[PURR] lowest of the last n (ex: 14) bars',
     insertText: `lowest(value, 14)`
   },
   {
     label: 'linreg',
-    detail: '[AGGR] linreg of the last n (ex: 14) bars',
+    detail: '[PURR] linreg of the last n (ex: 14) bars',
     insertText: `linreg(value, 14)`
   },
   {
     label: 'sum',
-    detail: '[AGGR] sum of the last n (ex: 14) bars',
+    detail: '[PURR] sum of the last n (ex: 14) bars',
     insertText: `sum(value, 14)`
   },
   {
     label: 'cma',
-    detail: '[AGGR] bad sma',
+    detail: '[PURR] bad sma',
     insertText: `cma(value, 14)`
   },
   {
     label: 'sma',
-    detail: '[AGGR] sma',
+    detail: '[PURR] sma',
     insertText: `sma(value, 14)`
   },
   {
     label: 'ema',
-    detail: '[AGGR] ema',
+    detail: '[PURR] ema',
     insertText: `ema(value, 14)`
   },
   {
     label: 'last',
-    detail: '[AGGR] equivalent of n[14] (but dynamic)',
+    detail: '[PURR] equivalent of n[14] (but dynamic)',
     insertText: `last(value, options.offset)`
   },
   {
     label: 'rma',
-    detail: '[AGGR] rma',
+    detail: '[PURR] rma',
     insertText: `rma(value, 14)`
   },
   {
     label: 'stoch',
-    detail: '[AGGR] stoch',
+    detail: '[PURR] stoch',
     insertText: `stoch(value, 14)`
   },
   {
     label: 'na',
-    detail: '[AGGR] 0 if falsy',
+    detail: '[PURR] 0 if falsy',
     insertText: `na(value)`
   },
   {
     label: 'number',
-    detail: '[AGGR] number option',
+    detail: '[PURR] number option',
     insertText: `MyNumber = option(
   default=123, // default value
   label="Number value", // text above input
@@ -104,7 +104,7 @@ interpolate(ratio, colorA, colorB)
   },
   {
     label: 'text',
-    detail: '[AGGR] text option',
+    detail: '[PURR] text option',
     insertText: `MyText = option(
   type=text,
   label="Text value",
@@ -114,12 +114,12 @@ interpolate(ratio, colorA, colorB)
   },
   {
     label: 'threshold',
-    detail: '[AGGR] threshold option',
+    detail: '[PURR] threshold option',
     insertText: `threshold = option(type=number, min=0, max=10, step=0.1)`
   },
   {
     label: 'range',
-    detail: '[AGGR] range option',
+    detail: '[PURR] range option',
     insertText: `MyRange = option(
   type=range,
   label="My range",
@@ -129,7 +129,7 @@ interpolate(ratio, colorA, colorB)
   },
   {
     label: 'rangecolor',
-    detail: '[AGGR] range w/ gradient color',
+    detail: '[PURR] range w/ gradient color',
     insertText: `MyRangeColor = option(
   type=range,
   label="Big range",
@@ -141,7 +141,7 @@ interpolate(ratio, colorA, colorB)
   },
   {
     label: 'list',
-    detail: '[AGGR] list option',
+    detail: '[PURR] list option',
     insertText: `quote = option(
   type=list,
   options=[null, "USD", "USDT", "TUSD", "USDC", "FDUSD"],
@@ -150,17 +150,17 @@ interpolate(ratio, colorA, colorB)
   },
   {
     label: 'option',
-    detail: '[AGGR] simple option',
+    detail: '[PURR] simple option',
     insertText: `option(default=14,step=1)`
   },
   {
     label: 'option (range)',
-    detail: '[AGGR] simple option (range)',
+    detail: '[PURR] simple option (range)',
     insertText: `option(default=14,type=range,step=1,min=0,max=200)`
   },
   {
     label: 'listname',
-    detail: '[AGGR] named list option',
+    detail: '[PURR] named list option',
     insertText: `quote = option(
   type=list,
   options={
@@ -176,17 +176,17 @@ interpolate(ratio, colorA, colorB)
   },
   {
     label: 'color',
-    detail: '[AGGR] color option',
+    detail: '[PURR] color option',
     insertText: `color = option(type=color,default="red")`
   },
   {
     label: 'color rgba',
-    detail: '[AGGR] color rgba option',
+    detail: '[PURR] color rgba option',
     insertText: `color = option(type=color,default="rgba(0, 255, 0, 0.5)")`
   },
   {
     label: 'sourced candlestick',
-    detail: '[AGGR] sourced candlestick',
+    detail: '[PURR] sourced candlestick',
     insertText: `// let user choose spot, perp or both in indicator's settings
 type = option(type=list, options=[null, "spot", "perp"], rebuild=true)
 
@@ -198,7 +198,7 @@ candlestick(avg_ohlc(src))`
   },
   {
     label: 'multicolor histogram',
-    detail: '[AGGR] multicolor histogram',
+    detail: '[PURR] multicolor histogram',
     insertText: `histogram({
   time: time,
   value: vbuy + vsell,
@@ -207,7 +207,7 @@ candlestick(avg_ohlc(src))`
   },
   {
     label: 'plotbrokenarea',
-    detail: '[AGGR] draw horizontal area',
+    detail: '[PURR] draw horizontal area',
     insertText: `brokenarea({
   time: time, 
   lowerValue: 10,
@@ -218,27 +218,27 @@ candlestick(avg_ohlc(src))`
   },
   {
     label: 'plotline',
-    detail: '[AGGR] draw simple line',
+    detail: '[PURR] draw simple line',
     insertText: `line($price.close)`
   },
   {
     label: 'plothistogram',
-    detail: '[AGGR] draw simple columns',
+    detail: '[PURR] draw simple columns',
     insertText: `histogram(vbuy + vsell)`
   },
   {
     label: 'plotbaseline',
-    detail: '[AGGR] draw simple baseline',
+    detail: '[PURR] draw simple baseline',
     insertText: `baseline($price.close)`
   },
   {
     label: 'plotcloudarea',
-    detail: '[AGGR] draw simple cloud',
+    detail: '[PURR] draw simple cloud',
     insertText: `cloudarea($price.low, $price.high)`
   },
   {
     label: 'markers',
-    detail: '[AGGR] markers example',
+    detail: '[PURR] markers example',
     insertText: `// <STARTUP SCRIPT> 
 if (!pendingMarkers) {
   // runs only once
@@ -281,12 +281,12 @@ lastIndex = bar.length`
   {
     label: 'rebuild',
     detail:
-      '[AGGR] force a rebuild when that option change option(..., rebuild=true)',
+      '[PURR] force a rebuild when that option change option(..., rebuild=true)',
     insertText: `rebuild=true`
   },
   {
     label: 'cvd',
-    detail: '[AGGR] cumulative volume delta',
+    detail: '[PURR] cumulative volume delta',
     insertText: `spotColor = option(type=color,default="rgb(102,187,106)")
 perpColor = option(type=color,default="rgb(49,121,245)")
 

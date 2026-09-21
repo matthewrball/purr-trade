@@ -13,12 +13,12 @@ assignees: ''
 
 - [ ] I provided a clear and concise description of the bug (see both sections below).
 - [ ] I documented the issue with screenshots.
-- [ ] I have attached an [export of my Aggr database](https://imgur.com/a/traIrKb) to the issue.
+- [ ] I have attached an export of my Purr database (Settings → Reset → Export database) to the issue.
 - [ ] I checked my [browser's console](https://balsamiq.com/support/faqs/browserconsole/) output for errors and included it in the issue if any.
 
 ## Description of what the bug is
 
-- **Environment:** (e.g., aggr.trade desktop)
+- **Environment:** (e.g., purr.trade desktop)
 - **App version:**
 
 Steps to reproduce:
@@ -27,7 +27,7 @@ Steps to reproduce:
 ## Screenshots
 *Insert screenshots below.*
 
-## Export Aggr Database
+## Export Purr Database
 *Export the database from the settings dialog.*
 
 ## Browser's console logs

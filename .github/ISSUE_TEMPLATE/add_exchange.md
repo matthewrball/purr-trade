@@ -1,7 +1,7 @@
 ---
 name: Add exchange
-about: Adding new exchange connection to Aggr🚀
-title: "[DATA] Add <NAME_EXCHANGE> to AGGR"
+about: Adding new exchange connection to Purr🚀
+title: "[DATA] Add <NAME_EXCHANGE> to Purr"
 labels: enhancement, data_request
 ---
 

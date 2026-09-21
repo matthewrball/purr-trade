@@ -8,7 +8,7 @@
       "name": "",
       "type": "chart",
       "markets": [
-        "HYPERLIQUID:BTC"
+        "HYPERLIQUID:HYPE"
       ]
     },
     "trades": {
@@ -16,7 +16,7 @@
       "name": "",
       "type": "trades",
       "markets": [
-        "HYPERLIQUID:BTC"
+        "HYPERLIQUID:HYPE"
       ],
       "settings": {
         "showLiquidations": false
@@ -27,7 +27,7 @@
       "name": "REKTS",
       "type": "trades",
       "markets": [
-        "HYPERLIQUID:BTC"
+        "HYPERLIQUID:HYPE"
       ],
       "settings": {
         "showTrades": false

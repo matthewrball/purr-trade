@@ -28,7 +28,10 @@
             <small class="indicator-detail__subtitle">
               <span v-if="indicator.author">
                 by
-                <a :href="authorUrl" target="_blank">{{ indicator.author }}</a>
+                <a v-if="authorUrl" :href="authorUrl" target="_blank">{{
+                  indicator.author
+                }}</a>
+                <template v-else>{{ indicator.author }}</template>
               </span>
               <span
                 :title="dates[dateIndex].title"
@@ -230,6 +233,10 @@ export default {
       return null
     },
     authorUrl() {
+      if (!import.meta.env.VITE_APP_LIB_REPO_URL) {
+        return null
+      }
+
       return `${import.meta.env.VITE_APP_LIB_REPO_URL}/tree/main/indicators/${
         this.indicator.author
       }`

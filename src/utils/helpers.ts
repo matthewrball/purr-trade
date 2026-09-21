@@ -459,9 +459,9 @@ export function handleFetchError(err): void {
         timeout: 10000
       })
     } else {
-      if (/aggr\.trade$/.test(location.hostname)) {
+      if (/purr\.trade$/.test(location.hostname)) {
         store.dispatch('app/showNotice', {
-          title: `Aggr server seems down 💀`,
+          title: `Purr server seems down 💀`,
           type: 'error',
           timeout: 10000
         })

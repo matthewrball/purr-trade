@@ -9,13 +9,13 @@ import fs from 'fs'
     console.log('Prepare manifest...')
     const manifestPath = `public/manifest.webmanifest`
     const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'))
-    manifest.start_url = '/aggr/'
-    manifest.id = '/aggr/'
+    manifest.start_url = '/purr-trade/'
+    manifest.id = '/purr-trade/'
     manifest.icons = manifest.icons.map(icon => {
       const iconSrc = icon.src.startsWith('/')
         ? icon.src.substring(1)
         : icon.src
-      return { ...icon, src: `/aggr/${iconSrc}` }
+      return { ...icon, src: `/purr-trade/${iconSrc}` }
     })
 
     fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, 2))
