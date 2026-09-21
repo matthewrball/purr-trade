@@ -24,10 +24,10 @@ export function walletAddress(
   }
 }
 
+export function walletUrl(address: string) {
+  return `https://hyperdash.com/address/${address}`
+}
+
 export function openWallet(address: string) {
-  window.open(
-    `https://app.hyperliquid.xyz/explorer/address/${address}`,
-    '_blank',
-    'noopener,noreferrer'
-  )
+  window.open(walletUrl(address), '_blank', 'noopener,noreferrer')
 }
