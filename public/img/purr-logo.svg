@@ -1,4 +1,1 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="40 48 432 432">
-  <title>Purr</title>
-  <path fill="#f5a524" fill-rule="evenodd" d="M86 226L104.4 95.6Q110 56 139.1 83.4L210 150Q256 124 302 150L372.9 83.4Q402 56 407.6 95.6L426 226C488 346 361.4 456 256 456C150.6 456 24 346 86 226ZM190 244Q146 306 190 368Q234 306 190 244ZM322 244Q278 306 322 368Q366 306 322 244Z"/>
-</svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><title>Purr</title><rect width="64" height="64" rx="12" fill="#171b29"/><rect x="13.25" y="18" width="2.5" height="30" fill="#e84b5a"/><rect x="10" y="24" width="9" height="17" rx="1" fill="#e84b5a"/><path d="M25 50V17L26.5 9L31 15.5H33L37.5 9L39 17V50Z" fill="#3bca6d"/><rect x="30.75" y="49" width="2.5" height="9" fill="#3bca6d"/><rect x="48.25" y="11" width="2.5" height="32" fill="#3bca6d"/><rect x="45" y="17" width="9" height="19" rx="1" fill="#3bca6d"/><g stroke="#f5a623" stroke-width="1.6" stroke-linecap="round"><path d="M23.4 30.6L20.6 29.2M23.4 33.4L20.6 34.8M40.6 30.6L43.4 29.2M40.6 33.4L43.4 34.8"/></g></svg>
