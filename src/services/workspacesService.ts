@@ -70,6 +70,8 @@ class WorkspacesService {
   latestDatabaseVersion: any
   latestWorkspaceVersion: any
   pairsFromURL: string[]
+  // workspace opened by a coin deep link: it never becomes the home workspace
+  urlSegmentWorkspaceId: string
   defaultInserted = false
 
   constructor() {
@@ -345,6 +347,8 @@ class WorkspacesService {
    */
   async getUrlSegmentWorkspace(segment: string, lastWorkspaceId: string) {
     let workspace: Workspace
+    // a deep link opens its own workspace, but it never becomes the home one
+    this.urlSegmentWorkspaceId = null
 
     if (segment.toLowerCase() !== segment) {
       workspace = await this.getWorkspace(segment.toLowerCase())
@@ -358,10 +362,12 @@ class WorkspacesService {
 
     if (coin) {
       // reopen the coin's workspace rather than creating a copy
-      return (
+      workspace =
         (await this.getWorkspace(slugify(coin))) ||
-        this.createWorkspace(coin, ['HYPERLIQUID:' + coin])
-      )
+        (await this.createWorkspace(coin, ['HYPERLIQUID:' + coin]))
+      this.urlSegmentWorkspaceId = workspace.id
+
+      return workspace
     }
 
     // the segment names the new workspace: market characters only, never markup
@@ -372,7 +378,10 @@ class WorkspacesService {
         .split(/\+|,/)
         .map(pair => stripStablePair(pair.toUpperCase()))
 
-      return this.createWorkspace(segment)
+      workspace = await this.createWorkspace(segment)
+      this.urlSegmentWorkspaceId = workspace.id
+
+      return workspace
     }
 
     if (lastWorkspaceId) {
@@ -495,7 +504,11 @@ class WorkspacesService {
       window.history.replaceState('Object', 'Title', '/' + this.workspace.id)
     }
 
-    localStorage.setItem('workspace', this.workspace.id)
+    if (this.workspace.id !== this.urlSegmentWorkspaceId) {
+      // a coin deep link (/hype, /xyz:tsla) stays a visit: "/" keeps opening
+      // the workspace the visitor was using before
+      localStorage.setItem('workspace', this.workspace.id)
+    }
 
     await boot(workspace, this.pairsFromURL)
 
