@@ -59,11 +59,16 @@
     <canvas
       ref="canvas"
       tabindex="0"
-      aria-label="Trades. Press Enter to open the newest displayed wallet."
+      aria-label="Trades. Press Enter to open the newest displayed wallet, Space for its details."
       @dblclick="prepareEverything"
       @click="openWalletAt"
+      @pointerdown="onCanvasPointerDown"
+      @pointermove="onCanvasMove"
+      @pointerleave="onCanvasLeave"
       @keydown.enter.prevent="openWalletAt()"
+      @keydown.space.prevent="showWalletCard"
     />
+    <wallet-card ref="walletCard" />
   </div>
 </template>
 
@@ -93,11 +98,21 @@ import dialogService from '../../services/dialogService'
 import audioService, { AudioFunction } from '../../services/audioService'
 import logos from '@/assets/exchanges'
 import { Trade } from '../../types/types'
-import { openWallet, walletAddress } from './wallet'
+import {
+  avatarColors,
+  loadProfiles,
+  makerEntity,
+  openWallet,
+  Wallet,
+  walletAddress
+} from './wallet'
+import WalletCard from './WalletCard.vue'
 
 const DEBUG = false
 const GRADIENT_DETAIL = 5
 const LOGOS = {}
+// Hyperliquid TWAP slice fills, same dim as .trade.-twap in the DOM feed
+const TWAP_ALPHA = 0.55
 
 enum TradeType {
   trade,
@@ -108,7 +123,8 @@ enum TradeType {
   name: 'TradesLite',
   components: {
     PaneHeader,
-    Slider
+    Slider,
+    WalletCard
   }
 })
 export default class TradesLite extends Mixins(PaneMixin) {
@@ -138,6 +154,8 @@ export default class TradesLite extends Mixins(PaneMixin) {
   private showPairs: boolean
   private showPrices: boolean
   private showHistograms: boolean
+  private showTwap: boolean
+  private canvasBackground: string
   private drawOffset: number
 
   // prepared thresholds by type (trade or liquidation)
@@ -187,6 +205,8 @@ export default class TradesLite extends Mixins(PaneMixin) {
     side: string
     time: string
     user?: string
+    maker?: string
+    twap?: boolean
     notional: number
   }[]
 
@@ -202,17 +222,21 @@ export default class TradesLite extends Mixins(PaneMixin) {
   private batchSize = 1
   private walletLinks: {
     address: string
+    market: string
     x: number
     y: number
     width: number
     height: number
   }[] = []
+  private hoveredWallet: string
+  private pointerType: string
 
   sliderDropdownTrigger = null
   paused = 0
 
   $refs!: {
     canvas: HTMLCanvasElement
+    walletCard: any
   }
 
   private scrollHandler: (event) => void
@@ -303,6 +327,11 @@ export default class TradesLite extends Mixins(PaneMixin) {
     this.$nextTick(this.prepareEverything)
 
     aggregatorService.on('trades', this.onTrades)
+
+    // rows drawn before the names arrived
+    loadProfiles().then(
+      loaded => loaded && this.tradesHistory && this.renderHistory()
+    )
   }
 
   async prepareEverything() {
@@ -341,6 +370,12 @@ export default class TradesLite extends Mixins(PaneMixin) {
         : TradeType.trade
 
       if (!this.filters[type] || !this.paneMarkets[marketKey]) {
+        continue
+      }
+
+      if (trades[i].twap && !this.showTwap) {
+        // no row, still in the delta histogram
+        this.insignificantVolumeBySide[trades[i].side] += trades[i].amount
         continue
       }
 
@@ -386,6 +421,8 @@ export default class TradesLite extends Mixins(PaneMixin) {
         side: trades[i].side,
         time: null,
         user: trades[i].user,
+        maker: trades[i].maker,
+        twap: trades[i].twap,
         notional: trades[i].size * (trades[i].avgPrice || trades[i].price)
       }
 
@@ -764,6 +801,22 @@ export default class TradesLite extends Mixins(PaneMixin) {
     this.showHistograms = pane.showHistograms
     this.showPairs = pane.showPairs
     this.showAvgPrice = pane.showAvgPrice
+    this.showTwap = pane.showTwap
+
+    if (!this.showTwap && this.tradesHistory) {
+      // hidden TWAP rows leave the history and the render queue, their volume
+      // stays in the delta histogram and rolls out with the next trade out
+      for (const trades of [this.tradesHistory, this.tradesRendering]) {
+        for (let i = 0; i < trades.length; i++) {
+          if (trades[i].twap) {
+            this.addedVolumeBySide[trades[i].side] += trades[i].amount
+            trades.splice(i, 1)
+            i--
+          }
+        }
+      }
+    }
+
     this.renderTrades =
       !pane.showHistograms || this.height > window.innerHeight / 24
     this.showPrices = pane.showPrices
@@ -876,9 +929,10 @@ export default class TradesLite extends Mixins(PaneMixin) {
       themeBase
     )
     themeBase[3] = 0.1
-    this.ctx.fillStyle = joinRgba(
+    this.canvasBackground = joinRgba(
       splitColorCode(joinRgba(themeBase), backgroundColor)
     )
+    this.ctx.fillStyle = this.canvasBackground
     this.ctx.fillRect(0, 0, this.width, this.height)
   }
 
@@ -957,6 +1011,14 @@ export default class TradesLite extends Mixins(PaneMixin) {
       return link.y < this.height
     })
     this.ctx.drawImage(this.ctx.canvas, 0, height)
+
+    if (trade.twap) {
+      // dimmed row: the whole row faded over the bare pane background
+      this.ctx.fillStyle = this.canvasBackground
+      this.ctx.fillRect(0, this.drawOffset, this.width, height)
+      this.ctx.globalAlpha = TWAP_ALPHA
+    }
+
     this.ctx.fillStyle = trade.background
     this.ctx.fillRect(0, this.drawOffset, this.width, height)
 
@@ -982,6 +1044,8 @@ export default class TradesLite extends Mixins(PaneMixin) {
     if (trade.time) {
       this.drawTime(trade, height)
     }
+
+    this.ctx.globalAlpha = 1
   }
 
   drawTime(trade, height) {
@@ -1037,54 +1101,320 @@ export default class TradesLite extends Mixins(PaneMixin) {
       new RegExp(`^(${this.fontSize}px)`),
       'bold $1'
     )
+    const boldFont = this.ctx.font
     const amount = this.baseSizingCurrency
       ? Math.round(trade.amount * 1e6) / 1e6
       : formatAmount(trade.amount)
-    let wallet = walletAddress(trade.user, trade.notional, this.walletThreshold)
-    const suffix = liquidation ? (trade.side === 'buy' ? '🐻' : '🐂') : ''
-    // the wallet drops before fillText's maxWidth squeezes the amount
-    if (
-      wallet &&
-      this.ctx.measureText(`${amount} ${wallet.text}${suffix}`).width >
-        this.maxWidth
-    ) {
-      wallet = null
-    }
-    const text = amount + (wallet ? ` ${wallet.text}` : '') + suffix
-    this.ctx.fillText(
-      text,
-      this.amountOffset,
-      this.drawOffset + height / 2 + 1,
-      this.maxWidth
+    const wallet = walletAddress(
+      trade.user,
+      trade.notional,
+      this.walletThreshold
     )
+    const tags = this.getTags(trade)
+    const suffix = liquidation ? (trade.side === 'buy' ? '🐻' : '🐂') : ''
+    const y = this.drawOffset + height / 2 + 1
+    let text = amount + suffix
+    let right = this.amountOffset
 
-    if (wallet) {
-      const width = this.ctx.measureText(wallet.text).width
-      this.walletLinks.push({
-        address: wallet.address,
-        x: this.amountOffset - this.ctx.measureText(suffix).width - width,
-        y: this.drawOffset,
-        width,
-        height
-      })
+    if (wallet || tags.length) {
+      const suffixWidth = this.ctx.measureText(suffix).width
+      // tags first, then the chip shrinks, then drops, before fillText's
+      // maxWidth squeezes the amount
+      const room = this.maxWidth - this.ctx.measureText(text).width
+      this.ctx.font = backupFont
+      let tagsWidth = this.drawTags(tags, 0, y, false)
+
+      // the maker badge drops before the TWAP tag
+      while (tags.length && tagsWidth > room) {
+        tags.pop()
+        tagsWidth = this.drawTags(tags, 0, y, false)
+      }
+
+      let width = wallet
+        ? this.drawWallet(
+            wallet,
+            right - suffixWidth,
+            y,
+            room - tagsWidth,
+            height,
+            trade.exchange + ':' + trade.pair
+          )
+        : 0
+
+      if (tagsWidth) {
+        width += this.drawTags(tags, right - suffixWidth - width, y)
+      }
+
+      this.ctx.font = boldFont
+
+      if (width) {
+        this.ctx.fillText(suffix, right, y)
+        right -= suffixWidth + width
+        text = `${amount}`
+      }
     }
+
+    this.ctx.fillText(text, right, y, this.maxWidth)
     this.ctx.font = backupFont
   }
 
-  openWalletAt(event?: MouseEvent) {
-    const x = event?.offsetX * this.pxRatio
-    const y = event?.offsetY * this.pxRatio
-    const link = event
-      ? this.walletLinks.find(
-          link =>
-            x >= link.x &&
-            x <= link.x + link.width &&
-            y >= link.y &&
-            y < Math.min(link.y + link.height, this.height)
+  // profile chip right-aligned at `right`: avatar, name (ellipsized), whale
+  // returns the width it took, 0 when not even the avatar fits in `room`
+  drawWallet(
+    wallet: Wallet,
+    right: number,
+    y: number,
+    room: number,
+    height: number,
+    market: string
+  ) {
+    const size = Math.round(this.fontSize * 0.8)
+    const gap = Math.round(this.fontSize * 0.35)
+    let space = room - gap - size
+
+    if (space < 0) {
+      return 0
+    }
+
+    const whaleWidth = wallet.whale
+      ? this.ctx.measureText('🐋').width + gap / 2
+      : 0
+    const whale = wallet.whale && space >= whaleWidth
+
+    if (whale) {
+      space -= whaleWidth
+    }
+
+    const name = wallet.name
+      ? this.fitText(wallet.text, space - gap)
+      : this.ctx.measureText(wallet.text).width <= space - gap
+        ? wallet.text
+        : ''
+    let x = right
+
+    if (whale) {
+      this.ctx.fillText('🐋', x, y)
+      x -= whaleWidth
+    }
+
+    if (name) {
+      // relative, a TWAP row is already dimmed
+      const alpha = this.ctx.globalAlpha
+      this.ctx.globalAlpha = alpha * (wallet.name ? 1 : 0.6)
+      this.ctx.fillText(name, x, y)
+      this.ctx.globalAlpha = alpha
+      x -= this.ctx.measureText(name).width + gap
+    }
+
+    this.drawAvatar(wallet.address, x - size / 2, y - 1, size / 2)
+    x -= size
+
+    this.walletLinks.push({
+      address: wallet.address,
+      market,
+      x,
+      y: this.drawOffset,
+      width: right - x,
+      height
+    })
+
+    return right - x + gap
+  }
+
+  // TWAP slice + known maker (Assistance Fund, HLP, validators), as the DOM feed
+  getTags(trade: Trade) {
+    const tags: { text: string; dashed?: boolean }[] = []
+    const maker = makerEntity(trade.maker)
+
+    if (trade.twap) {
+      tags.push({ text: 'TWAP' })
+    }
+
+    if (maker) {
+      tags.push({ text: maker.badge, dashed: true })
+    }
+
+    return tags
+  }
+
+  // small outlined tags right-aligned at `right`, returns the width they take
+  // (with the gap before them), only measures when draw is false
+  drawTags(
+    tags: { text: string; dashed?: boolean }[],
+    right: number,
+    y: number,
+    draw = true
+  ) {
+    if (!tags.length) {
+      return 0
+    }
+
+    const font = this.ctx.font
+    const size = Math.round(this.fontSize * 0.65)
+    const padding = Math.round(size * 0.3)
+    const gap = Math.round(this.fontSize * 0.35)
+    const boxHeight = Math.round(size * 1.4)
+    let x = right
+
+    this.ctx.font = `600 ${size}px Spline Sans Mono`
+
+    if (draw) {
+      this.ctx.strokeStyle = this.ctx.fillStyle
+      this.ctx.lineWidth = this.pxRatio
+    }
+
+    for (let i = tags.length - 1; i >= 0; i--) {
+      const width = this.ctx.measureText(tags[i].text).width + padding * 2
+
+      if (draw) {
+        this.ctx.fillText(tags[i].text, x - padding, y)
+        this.ctx.setLineDash(
+          tags[i].dashed ? [2 * this.pxRatio, 2 * this.pxRatio] : []
         )
+        this.ctx.strokeRect(x - width, y - boxHeight / 2 - 1, width, boxHeight)
+      }
+
+      x -= width + (i ? gap / 2 : gap)
+    }
+
+    this.ctx.setLineDash([])
+    this.ctx.font = font
+
+    return right - x
+  }
+
+  // same two-hue split as .trade__avatar in the DOM feed
+  drawAvatar(address: string, x: number, y: number, radius: number) {
+    const color = this.ctx.fillStyle
+    const [top, bottom] = avatarColors(address)
+
+    this.ctx.fillStyle = top
+    this.ctx.beginPath()
+    this.ctx.arc(x, y, radius, Math.PI * 0.75, Math.PI * 1.75)
+    this.ctx.fill()
+    this.ctx.fillStyle = bottom
+    this.ctx.beginPath()
+    this.ctx.arc(x, y, radius, Math.PI * 1.75, Math.PI * 2.75)
+    this.ctx.fill()
+    this.ctx.fillStyle = color
+  }
+
+  fitText(text: string, width: number) {
+    if (this.ctx.measureText(text).width <= width) {
+      return text
+    }
+
+    const chars = [...text]
+
+    while (chars.length > 1) {
+      chars.pop()
+      const fitted = chars.join('').trimEnd() + '…'
+
+      if (this.ctx.measureText(fitted).width <= width) {
+        return fitted
+      }
+    }
+
+    return ''
+  }
+
+  walletLinkAt(event: MouseEvent) {
+    const x = event.offsetX * this.pxRatio
+    const y = event.offsetY * this.pxRatio
+
+    return this.walletLinks.find(
+      link =>
+        x >= link.x &&
+        x <= link.x + link.width &&
+        y >= link.y &&
+        y < Math.min(link.y + link.height, this.height)
+    )
+  }
+
+  // viewport rect of a chip, anchors the wallet card
+  walletLinkRect(link) {
+    const bounds = this.$refs.canvas.getBoundingClientRect()
+
+    return {
+      top: bounds.top + link.y / this.pxRatio,
+      left: bounds.left + link.x / this.pxRatio,
+      width: link.width / this.pxRatio,
+      height: link.height / this.pxRatio
+    }
+  }
+
+  openWalletAt(event?: MouseEvent) {
+    const link = event
+      ? this.walletLinkAt(event)
       : this.walletLinks[this.walletLinks.length - 1]
-    if (link) {
+    // touch: a tap shows the card, which links to Hyperdash
+    const touch =
+      event && event.detail && this.pointerType && this.pointerType !== 'mouse'
+
+    this.pointerType = null
+
+    if (link && touch) {
+      this.$refs.walletCard.open(
+        this.walletLinkRect(link),
+        link.address,
+        link.market,
+        this.$refs.canvas
+      )
+    } else if (link) {
       openWallet(link.address)
+    }
+  }
+
+  showWalletCard() {
+    const link = this.walletLinks[this.walletLinks.length - 1]
+
+    if (link) {
+      this.$refs.walletCard.open(
+        this.walletLinkRect(link),
+        link.address,
+        link.market,
+        this.$refs.canvas,
+        true
+      )
+    }
+  }
+
+  onCanvasPointerDown(event: PointerEvent) {
+    this.pointerType = event.pointerType
+  }
+
+  onCanvasMove(event: PointerEvent) {
+    if (event.pointerType !== 'mouse') {
+      return
+    }
+
+    const link = this.walletLinkAt(event)
+    const address = link ? link.address : null
+
+    if (address === this.hoveredWallet) {
+      return
+    }
+
+    this.hoveredWallet = address
+    this.$refs.canvas.style.cursor = link ? 'pointer' : ''
+
+    if (link) {
+      this.$refs.walletCard.hover(
+        this.walletLinkRect(link),
+        link.address,
+        link.market,
+        this.$refs.canvas
+      )
+    } else {
+      this.$refs.walletCard.leave()
+    }
+  }
+
+  onCanvasLeave() {
+    if (this.hoveredWallet) {
+      this.hoveredWallet = null
+      this.$refs.canvas.style.cursor = ''
+      this.$refs.walletCard.leave()
     }
   }
 

@@ -259,6 +259,51 @@
         />
       </div>
 
+      <div class="form-group column mb8">
+        <label
+          :for="paneId + '-notify-threshold'"
+          class="-fill -center -inline"
+        >
+          Notify on trades ≥ $
+          <i
+            class="icon-info"
+            v-tippy
+            title="When Purr is open in a background tab, trades at or above this amount show a notice (and a browser notification if allowed). Empty = off"
+          ></i>
+        </label>
+        <input
+          type="number"
+          min="0"
+          step="10000"
+          class="form-control"
+          placeholder="Off"
+          :id="paneId + '-notify-threshold'"
+          :value="notifyThreshold"
+          @change="setNotifyThreshold($event.target.value)"
+        />
+      </div>
+      <AlertsNotifications v-if="notifyThreshold" class="mb8" />
+
+      <div class="form-group mb8">
+        <label class="checkbox-control -small">
+          <input
+            type="checkbox"
+            class="form-control"
+            :checked="showTwap"
+            @change="$store.commit(paneId + '/TOGGLE_PREFERENCE', 'showTwap')"
+          />
+          <div></div>
+          <span>
+            Show TWAP fills
+            <i
+              class="icon-info"
+              v-tippy
+              title="Hyperliquid TWAP slices, dimmed and tagged TWAP"
+            ></i>
+          </span>
+        </label>
+      </div>
+
       <div
         v-if="isLegacy"
         class="form-group column"
@@ -426,6 +471,7 @@ import ColorPickerControl from '@/components/framework/picker/ColorPickerControl
 import ThresholdColor from '@/components/trades/ThresholdColor.vue'
 import MarketMultiplier from '@/components/trades/MarketMultiplier.vue'
 import ToggableGroup from '@/components/framework/ToggableGroup.vue'
+import AlertsNotifications from '@/components/alerts/AlertsNotifications.vue'
 
 @Component({
   components: {
@@ -435,7 +481,8 @@ import ToggableGroup from '@/components/framework/ToggableGroup.vue'
     ToggableSection,
     MarketMultiplier,
     ColorPickerControl,
-    ToggableGroup
+    ToggableGroup,
+    AlertsNotifications
   },
   name: 'TradesSettings',
   props: {
@@ -485,6 +532,21 @@ export default class TradesSettings extends Vue {
     }
   }
 
+  get notifyThreshold() {
+    return (this.$store.state[this.paneId] as TradesPaneState).notifyThreshold
+  }
+
+  setNotifyThreshold(value: string) {
+    const state = this.$store.state[this.paneId] as TradesPaneState
+    const threshold = Number(value)
+    // empty or 0 = off
+    state.notifyThreshold =
+      value !== '' && Number.isFinite(threshold) && threshold > 0
+        ? threshold
+        : null
+    scheduleSync(state)
+  }
+
   get thresholds() {
     return (this.$store.state[this.paneId] as TradesPaneState).thresholds
   }
@@ -523,6 +585,10 @@ export default class TradesSettings extends Vue {
 
   get showPairs() {
     return (this.$store.state[this.paneId] as TradesPaneState).showPairs
+  }
+
+  get showTwap() {
+    return (this.$store.state[this.paneId] as TradesPaneState).showTwap
   }
 
   get showHistograms() {

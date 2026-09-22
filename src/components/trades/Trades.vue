@@ -76,6 +76,7 @@
       v-if="showPlaceholder"
       :paneId="paneId"
     ></trades-placeholder>
+    <wallet-card ref="walletCard" />
   </div>
 </template>
 
@@ -93,9 +94,11 @@ import { formatAmount, parseMarket } from '@/services/productsService'
 import TradesFeed from '@/components/trades/tradesFeed'
 import Slider from '@/components/framework/picker/Slider.vue'
 import { TradesPaneState } from '@/store/panesSettings/trades'
+import { loadProfiles } from '@/components/trades/wallet'
+import WalletCard from '@/components/trades/WalletCard.vue'
 
 @Component({
-  components: { PaneHeader, TradesPlaceholder, Slider },
+  components: { PaneHeader, TradesPlaceholder, Slider, WalletCard },
   name: 'Trades'
 })
 export default class Trades extends Mixins(PaneMixin) {
@@ -147,6 +150,7 @@ export default class Trades extends Mixins(PaneMixin) {
 
   $refs!: {
     tradesContainer: HTMLElement
+    walletCard: any
   }
 
   formatAmount(v) {
@@ -220,6 +224,12 @@ export default class Trades extends Mixins(PaneMixin) {
       this.$refs.tradesContainer,
       this.$store.state[this.paneId].maxRows
     )
+
+    // rows drawn before the names arrived
+    loadProfiles().then(loaded => loaded && this.feed && this.refreshList())
+
+    // hover / focus / tap a chip for the wallet card
+    this.$refs.walletCard.bindChips(this.$refs.tradesContainer)
   }
 
   beforeDestroy() {
@@ -267,11 +277,16 @@ export default class Trades extends Mixins(PaneMixin) {
         amount,
         size,
         side,
-        user: element.getAttribute('data-user') || undefined
+        user: element.getAttribute('data-user') || undefined,
+        maker: element.getAttribute('data-maker') || undefined
       }
 
       if (element.classList.contains('-liquidation')) {
         trade.liquidation = true
+      }
+
+      if (element.classList.contains('-twap')) {
+        trade.twap = true
       }
 
       trades.push(trade)
@@ -302,7 +317,8 @@ export default class Trades extends Mixins(PaneMixin) {
       line-height: 1.75em !important;
     }
 
-    .trade__wallet {
+    .trade__wallet,
+    .trade__tags:nth-last-child(2) {
       margin-right: calc(2.4em - 0.5rem);
     }
   }
@@ -463,6 +479,11 @@ export default class Trades extends Mixins(PaneMixin) {
     font-weight: 600;
   }
 
+  // Hyperliquid TWAP slice fills
+  &.-twap {
+    opacity: 0.55;
+  }
+
   > div {
     flex-grow: 1;
     flex-basis: 0;
@@ -528,15 +549,108 @@ export default class Trades extends Mixins(PaneMixin) {
   }
 
   .trade__wallet {
+    display: flex;
+    align-items: center;
     color: inherit;
+    text-decoration: none;
     white-space: nowrap;
+    // price and amount keep min-content, the chip shrinks after the tags
     min-width: 0;
     overflow: hidden;
-    text-overflow: ellipsis;
     margin-left: 0.5em;
     // stop where .trade__time starts, it overhangs the 2rem gutter on big rows
     margin-right: calc(2.4em - 1.5rem);
     font-size: 0.8em;
+
+    &:hover .trade__name {
+      text-decoration: underline;
+    }
+
+    &:focus-visible {
+      outline: 1px solid currentColor;
+      outline-offset: -1px;
+    }
+
+    &.-unnamed .trade__name {
+      opacity: 0.6;
+    }
+  }
+
+  .trade__tags {
+    display: flex;
+    // a tag that no longer fits wraps out of sight (one line high): who
+    // traded comes first, and it never runs over .trade__time
+    flex-wrap: wrap;
+    align-self: center;
+    height: calc(1.12em + 2px);
+    // ~infinite: every tag wraps away before the chip gives up any width,
+    // not even the sub-pixel that would ellipsize the name
+    flex-shrink: 1000000;
+    min-width: 0;
+    overflow: hidden;
+    font-size: 0.8em;
+
+    // empty first item: even the first tag wraps away instead of clipping,
+    // 1px last item: the slack that wraps before a tag on a sub-pixel shrink
+    &:before,
+    &:after {
+      content: '';
+      height: 100%;
+    }
+
+    &:after {
+      width: 1px;
+    }
+
+    // stop where .trade__time starts when no chip follows
+    &:nth-last-child(2) {
+      margin-right: calc(2.4em - 1.5rem);
+    }
+  }
+
+  .trade__tag {
+    flex-shrink: 0;
+    // the 0.5em gap of the chip, gone with the tag when it wraps away
+    margin-left: 0.625em;
+    padding: 0 0.3em;
+    border: 1px solid currentColor;
+    border-radius: 2px;
+    font-size: 0.8em;
+    font-weight: 600;
+    line-height: 1.4;
+    text-decoration: none;
+
+    + .trade__tag {
+      margin-left: 0.25em;
+    }
+
+    &.-maker {
+      border-style: dashed;
+    }
+  }
+
+  .trade__avatar {
+    flex-shrink: 0;
+    width: 1em;
+    height: 1em;
+    margin-right: 0.35em;
+    border-radius: 50%;
+  }
+
+  .trade__name {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  // atomic: a shrunk short address ellipsizes to "f5…", never "f5……"
+  .trade__tail {
+    display: inline-block;
+  }
+
+  .trade__whale {
+    flex-shrink: 0;
+    margin-left: 0.25em;
   }
 
   .trade__time {

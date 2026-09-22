@@ -212,6 +212,10 @@ class Aggregator {
           aggTrade.price = trade.price
           aggTrade.value += trade.price * trade.size
           aggTrade.count += trade.count || 1
+
+          if (aggTrade.user) {
+            this.mergeFill(aggTrade, trade)
+          }
           continue
         } else {
           this.pendingTrades.push(this.processTrade(aggTrade))
@@ -224,6 +228,28 @@ class Aggregator {
       trade.count = trade.count || 1
       this.aggregationTimeouts[marketKey] = now + this.baseAggregationTimeout
       this.onGoingAggregations[marketKey] = trade
+    }
+  }
+
+  /**
+   * Hyperliquid fills of one taker: TWAP only if every fill is, the tx hash
+   * only while it is shared, and a known maker (Assistance Fund, HLP,
+   * validators) wins over the other makers, else the maker only while shared
+   */
+  mergeFill(aggTrade: Trade, trade: Trade) {
+    aggTrade.twap = aggTrade.twap && trade.twap
+
+    if (aggTrade.hash !== trade.hash) {
+      aggTrade.hash = undefined
+    }
+
+    if (
+      aggTrade.maker !== trade.maker &&
+      !settings.makerEntities[aggTrade.maker]
+    ) {
+      aggTrade.maker = settings.makerEntities[trade.maker]
+        ? trade.maker
+        : undefined
     }
   }
 

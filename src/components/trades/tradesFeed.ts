@@ -13,7 +13,16 @@ import {
   getColorLuminance,
   splitColorCode
 } from '@/utils/colors'
-import { walletAddress, walletUrl } from './wallet'
+import {
+  avatarColors,
+  escapeHtml,
+  makerEntity,
+  makerTitle,
+  Wallet,
+  walletAddress,
+  walletTitle,
+  walletUrl
+} from './wallet'
 
 interface PreparedColorStep {
   from?: number
@@ -56,6 +65,7 @@ export default class TradesFeed {
   private showPrices: boolean
   private showAvgPrice: boolean
   private showTimeAgo: boolean
+  private showTwap: boolean
   private slippageMode: SlippageMode
   private paneMarkets: { [identifier: string]: boolean }
 
@@ -103,6 +113,10 @@ export default class TradesFeed {
       }
 
       let trade = trades[i]
+
+      if (trade.twap && !this.showTwap) {
+        continue
+      }
 
       if (typeof this.marketsMultipliers[marketKey] !== 'undefined') {
         // copy, the same Trade objects are shared with every other listener
@@ -318,18 +332,22 @@ export default class TradesFeed {
     if (this.showPairs) {
       const market = store.state.panes.marketsListeners[marketKey]
 
-      pairName = `<div class="trade__pair">${
+      pairName = `<div class="trade__pair">${escapeHtml(
         trade.exchange === 'HYPERLIQUID' && market
           ? getMarketLabel(market)
           : trade.pair.replace('_', ' ')
-      }</div>`
+      )}</div>`
     }
 
     return `<li class="trade -${trade.exchange} -${trade.side} -level-${
       colorStep.level
-    }${trade.liquidation ? ' -liquidation' : ''}" title="${trade.exchange}:${
-      trade.pair
-    }" data-user="${walletAddress(trade.user, 0, 0)?.address || ''}" data-price="${trade.avgPrice || trade.price}" style="${this.getTradeInlineStyles(
+    }${trade.liquidation ? ' -liquidation' : ''}${
+      trade.twap ? ' -twap' : ''
+    }" title="${escapeHtml(
+      trade.exchange + ':' + trade.pair
+    )}" data-user="${walletAddress(trade.user, 0, 0)?.address || ''}" data-maker="${
+      walletAddress(trade.maker, 0, 0)?.address || ''
+    }" data-price="${trade.avgPrice || trade.price}" style="${this.getTradeInlineStyles(
       trade,
       colorStep,
       significantAmount
@@ -357,13 +375,54 @@ export default class TradesFeed {
         <span>${Math.round(trade.size * 1e6) / 1e6}</span>
       </span>
     </div>
-    ${
-      wallet
-        ? `<a class="trade__wallet" href="${walletUrl(wallet.address)}" target="_blank" rel="noopener noreferrer" title="${trade.liquidation ? 'Liquidated wallet' : 'Taker wallet'}: ${wallet.address}">${wallet.text}</a>`
-        : ''
-    }
+    ${this.renderTags(trade)}
+    ${wallet ? this.renderWallet(wallet, trade.liquidation) : ''}
     <div class="trade__time ${timestampClass}" data-timestamp="${trade.timestamp.toString()}">${timestampText}</div>
     </li>`
+  }
+
+  // TWAP slice + known maker (Assistance Fund, HLP, validators)
+  renderTags(trade: Trade) {
+    const maker = makerEntity(trade.maker)
+
+    if (!trade.twap && !maker) {
+      return ''
+    }
+
+    // entity names are user-controlled (validators), escape them
+    return `<span class="trade__tags">${
+      trade.twap
+        ? '<abbr class="trade__tag" title="TWAP slice fill">TWAP</abbr>'
+        : ''
+    }${
+      maker
+        ? `<abbr class="trade__tag -maker" title="${escapeHtml(
+            makerTitle(maker)
+          )}">${escapeHtml(maker.badge)}</abbr>`
+        : ''
+    }</span>`
+  }
+
+  renderWallet(wallet: Wallet, liquidation: boolean) {
+    const [top, bottom] = avatarColors(wallet.address)
+
+    // names are user-controlled, escape them
+    // empty title: the wallet card replaces the row's market tooltip
+    // unnamed "f5…d53": the "…d53" tail is atomic (.trade__tail)
+    return `<a class="trade__wallet${
+      wallet.name ? '' : ' -unnamed'
+    }" href="${walletUrl(
+      wallet.address
+    )}" target="_blank" rel="noopener noreferrer" title="" aria-haspopup="dialog" aria-label="${escapeHtml(
+      walletTitle(wallet, liquidation)
+    )}"><span class="trade__avatar" style="background:linear-gradient(135deg,${top} 50%,${bottom} 50%)"></span><span class="trade__name">${
+      wallet.name
+        ? escapeHtml(wallet.text)
+        : escapeHtml(wallet.text).replace(
+            /….*/,
+            '<span class="trade__tail">$&</span>'
+          )
+    }</span>${wallet.whale ? '<span class="trade__whale">🐋</span>' : ''}</a>`
   }
 
   getTradesThesholds() {
@@ -549,6 +608,7 @@ export default class TradesFeed {
     this.showAvgPrice = store.state[this.paneId].showAvgPrice
     this.showTimeAgo = store.state[this.paneId].showTimeAgo
     this.walletThreshold = store.state[this.paneId].walletThreshold
+    this.showTwap = store.state[this.paneId].showTwap
 
     if (this.showTimeAgo && !this.timeUpdateInterval) {
       this.setupTimeUpdateInterval()

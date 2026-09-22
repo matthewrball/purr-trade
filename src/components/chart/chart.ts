@@ -11,7 +11,7 @@ import {
   TimeRange
 } from './chart.d'
 
-import { MAX_BARS_PER_CHUNKS } from '@/utils/constants'
+import { MAX_BARS_PER_CHUNKS, LOCAL_ALERTS } from '@/utils/constants'
 import {
   getHms,
   camelize,
@@ -1679,7 +1679,8 @@ export default class Chart {
         break
 
       case AlertEventType.TRIGGERED:
-        if (store.state.settings.alertSound) {
+        // local alerts play their sound once in alertService
+        if (!LOCAL_ALERTS && store.state.settings.alertSound) {
           audioService.playOnce(store.state.settings.alertSound)
         }
 
