@@ -82,6 +82,18 @@ const simplePairLookup = new RegExp(`^([A-Z0-9]{2,})[-/_]?([A-Z0-9]{3,})$`)
 const promisesOfProducts = {}
 let apiProductsUnavailable = false
 
+// catalogs the proxy answered but couldn't serve (e.g. geo-blocked), retried daily
+const PRODUCTS_FAILED_KEY = 'productsFailedAt'
+const PRODUCTS_RETRY_AFTER = 1000 * 60 * 60 * 24
+
+function getProductsFailures(): { [exchangeId: string]: number } {
+  try {
+    return JSON.parse(localStorage.getItem(PRODUCTS_FAILED_KEY)) || {}
+  } catch (error) {
+    return {}
+  }
+}
+
 export const indexedProducts = {}
 
 export const marketDecimals = {}
@@ -168,6 +180,7 @@ async function fetchExchangeProducts(
 
   let data = []
   let complete = true
+  let proxyAnswered = false
 
   // Must match catalogName() in scripts/build-catalogs.mjs
   const catalogName = (url: string) =>
@@ -238,6 +251,9 @@ async function fetchExchangeProducts(
         method: endpoint.method,
         body: endpoint.data
       }).then(response => {
+        if (endpoint.url !== originalUrl) {
+          proxyAnswered = true
+        }
         if (exchangeId === 'HYPERLIQUID' && !response.ok) {
           throw new Error('Failed to fetch Hyperliquid products')
         }
@@ -252,7 +268,7 @@ async function fetchExchangeProducts(
             .filter(dex => dex && dex.name)
             .map(async dex => {
               const controller = new AbortController()
-              const timeout = setTimeout(() => controller.abort(), 2000)
+              const timeout = setTimeout(() => controller.abort(), 8000)
               try {
                 const response = await fetch(
                   'https://api.hyperliquid.xyz/info',
@@ -333,10 +349,11 @@ async function fetchExchangeProducts(
     })) as ProductsStorage
 
     if (productsData && !complete) {
+      // expires in 10 min: retried soon, not on every lookup
       await workspacesService.saveProducts({
         exchange: exchangeId,
         data: productsData,
-        timestamp: 0
+        timestamp: Date.now() - PRODUCTS_EXPIRES_AFTER + 10 * 60 * 1000
       })
       return productsData
     }
@@ -346,11 +363,21 @@ async function fetchExchangeProducts(
         () => productsData
       )
     }
-
-    return null
-  } else {
-    return null
   }
+
+  if (proxyAnswered) {
+    // each retry through the proxy spends a Worker request: wait a day
+    try {
+      localStorage.setItem(
+        PRODUCTS_FAILED_KEY,
+        JSON.stringify({ ...getProductsFailures(), [exchangeId]: Date.now() })
+      )
+    } catch (error) {
+      console.debug(`[products.${exchangeId}] couldn't remember the failure`)
+    }
+  }
+
+  return null
 }
 
 export async function getStoredProductsOrFetch(
@@ -366,6 +393,15 @@ export async function getStoredProductsOrFetch(
     !(productsStorage = await getExchangeStoredProductsData(exchangeId)) ||
     Date.now() - productsStorage.timestamp > PRODUCTS_EXPIRES_AFTER
   ) {
+    if (
+      !forceFetch &&
+      Date.now() - (getProductsFailures()[exchangeId] || 0) <
+        PRODUCTS_RETRY_AFTER
+    ) {
+      console.debug(`[products.${exchangeId}] failed recently, not refetched`)
+      return null
+    }
+
     console.debug(
       `[products.${exchangeId}] fetch products using provided endpoints`
     )

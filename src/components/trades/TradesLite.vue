@@ -516,7 +516,7 @@ export default class TradesLite extends Mixins(PaneMixin) {
     }
 
     for (let i = 0; i < this.tradesHistory.length; i++) {
-      if (!this.filters[(this.tradesHistory as any).type]) {
+      if (!this.filters[this.tradesHistory[i].type]) {
         this.tradesHistory.splice(i, 1)
         i--
       }
@@ -1118,14 +1118,17 @@ export default class TradesLite extends Mixins(PaneMixin) {
 
     if (wallet || tags.length) {
       const suffixWidth = this.ctx.measureText(suffix).width
-      // tags first, then the chip shrinks, then drops, before fillText's
-      // maxWidth squeezes the amount
+      // as the DOM feed: tags give way to the whole chip first, then the chip
+      // shrinks, then drops, before fillText's maxWidth squeezes the amount
       const room = this.maxWidth - this.ctx.measureText(text).width
       this.ctx.font = backupFont
+      const chipWidth = wallet
+        ? this.drawWallet(wallet, 0, y, Infinity, height, null, false)
+        : 0
       let tagsWidth = this.drawTags(tags, 0, y, false)
 
       // the maker badge drops before the TWAP tag
-      while (tags.length && tagsWidth > room) {
+      while (tags.length && tagsWidth > room - chipWidth) {
         tags.pop()
         tagsWidth = this.drawTags(tags, 0, y, false)
       }
@@ -1160,13 +1163,15 @@ export default class TradesLite extends Mixins(PaneMixin) {
 
   // profile chip right-aligned at `right`: avatar, name (ellipsized), whale
   // returns the width it took, 0 when not even the avatar fits in `room`
+  // (only measures when draw is false)
   drawWallet(
     wallet: Wallet,
     right: number,
     y: number,
     room: number,
     height: number,
-    market: string
+    market: string,
+    draw = true
   ) {
     const size = Math.round(this.fontSize * 0.8)
     const gap = Math.round(this.fontSize * 0.35)
@@ -1193,17 +1198,25 @@ export default class TradesLite extends Mixins(PaneMixin) {
     let x = right
 
     if (whale) {
-      this.ctx.fillText('🐋', x, y)
+      if (draw) {
+        this.ctx.fillText('🐋', x, y)
+      }
       x -= whaleWidth
     }
 
     if (name) {
-      // relative, a TWAP row is already dimmed
-      const alpha = this.ctx.globalAlpha
-      this.ctx.globalAlpha = alpha * (wallet.name ? 1 : 0.6)
-      this.ctx.fillText(name, x, y)
-      this.ctx.globalAlpha = alpha
+      if (draw) {
+        // relative, a TWAP row is already dimmed
+        const alpha = this.ctx.globalAlpha
+        this.ctx.globalAlpha = alpha * (wallet.name ? 1 : 0.6)
+        this.ctx.fillText(name, x, y)
+        this.ctx.globalAlpha = alpha
+      }
       x -= this.ctx.measureText(name).width + gap
+    }
+
+    if (!draw) {
+      return right - x + size + gap
     }
 
     this.drawAvatar(wallet.address, x - size / 2, y - 1, size / 2)
@@ -1306,7 +1319,8 @@ export default class TradesLite extends Mixins(PaneMixin) {
 
     const chars = [...text]
 
-    while (chars.length > 1) {
+    // 2 characters at least, as the DOM feed (never a lone letter)
+    while (chars.length > 2) {
       chars.pop()
       const fitted = chars.join('').trimEnd() + '…'
 

@@ -138,6 +138,8 @@ import {
 
 const SHOW_DELAY = 300
 const HIDE_DELAY = 250
+// portfolio weighs 20 of a card's 24: only for a card hovered 1 s
+const PORTFOLIO_DELAY = 1000
 const MAX_POSITIONS = 6
 const CHIP_EVENTS = [
   'pointermove',
@@ -308,6 +310,8 @@ export default class WalletCard extends Vue {
   private hideTimeout: number
   private copiedTimeout: number
   private loadId: number
+  private loadController: AbortController
+  private portfolioTimeout: number
   private chips: HTMLElement
   private pointerType: string
   private listening: boolean
@@ -434,7 +438,7 @@ export default class WalletCard extends Vue {
 
     this.pending = address
     this.showTimeout = setTimeout(
-      () => this.open(target, address, market, returnFocus),
+      () => this.open(target, address, market, returnFocus, false, true),
       SHOW_DELAY
     ) as unknown as number
   }
@@ -464,7 +468,8 @@ export default class WalletCard extends Vue {
     address: string,
     market: string,
     returnFocus?: HTMLElement,
-    focusCard?: boolean
+    focusCard?: boolean,
+    hovered?: boolean
   ) {
     clearTimeout(this.showTimeout)
     clearTimeout(this.hideTimeout)
@@ -483,7 +488,7 @@ export default class WalletCard extends Vue {
 
       this.address = address
       this.market = market
-      this.load()
+      this.load(hovered)
 
       // a copy, the chip row may move or leave the DOM while the card is open
       this.anchor = {
@@ -519,6 +524,7 @@ export default class WalletCard extends Vue {
     clearTimeout(this.showTimeout)
     clearTimeout(this.hideTimeout)
     this.pending = null
+    this.abortLoad()
 
     if (this.listening) {
       this.listening = false
@@ -547,8 +553,11 @@ export default class WalletCard extends Vue {
     }
   }
 
-  load() {
+  load(hovered?: boolean) {
     const id = (this.loadId = (this.loadId || 0) + 1)
+    // the replaced card's queued requests are never sent
+    this.abortLoad()
+    const signal = (this.loadController = new AbortController()).signal
     const address = this.address
     const [exchange, pair] =
       this.market && this.market.includes(':')
@@ -559,7 +568,7 @@ export default class WalletCard extends Vue {
         ? pair.split(':')[0]
         : null
     const done = (key: 'perp' | 'portfolio' | 'spot', value) => {
-      if (id === this.loadId) {
+      if (id === this.loadId && !signal.aborted) {
         this[key] = value
         this.$nextTick(this.refit)
       }
@@ -568,20 +577,39 @@ export default class WalletCard extends Vue {
     this.perp = this.portfolio = this.spot = null
 
     Promise.all(
-      [fetchWalletInfo('clearinghouseState', address)].concat(
-        dex ? [fetchWalletInfo('clearinghouseState', address, dex)] : []
+      [fetchWalletInfo('clearinghouseState', address, null, signal)].concat(
+        dex ? [fetchWalletInfo('clearinghouseState', address, dex, signal)] : []
       )
     )
       .then(states => done('perp', parsePerp(states, pair)))
       .catch(() => done('perp', false))
 
-    fetchWalletInfo('portfolio', address)
-      .then(data => done('portfolio', parsePortfolio(data)))
-      .catch(() => done('portfolio', false))
+    const portfolio = () =>
+      fetchWalletInfo('portfolio', address, null, signal)
+        .then(data => done('portfolio', parsePortfolio(data)))
+        .catch(() => done('portfolio', false))
 
-    fetchWalletInfo('spotClearinghouseState', address)
+    if (hovered) {
+      this.portfolioTimeout = setTimeout(
+        portfolio,
+        PORTFOLIO_DELAY
+      ) as unknown as number
+    } else {
+      portfolio()
+    }
+
+    fetchWalletInfo('spotClearinghouseState', address, null, signal)
       .then(data => done('spot', parseSpot(data)))
       .catch(() => done('spot', false))
+  }
+
+  abortLoad() {
+    clearTimeout(this.portfolioTimeout)
+
+    if (this.loadController) {
+      this.loadController.abort()
+      this.loadController = null
+    }
   }
 
   // the card grew, keep it on screen

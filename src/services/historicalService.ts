@@ -24,6 +24,9 @@ const hyperliquidIntervals = {
   86400: '1d'
 }
 
+// HL spot pair -> candle coin (HYPE/USDC -> @107), filled on first lookup
+const spotCoins: { [pair: string]: string } = {}
+
 const candleColumns = {
   time: 0,
   market: 1,
@@ -106,7 +109,34 @@ class HistoricalService extends EventEmitter {
     }
 
     this.promisesOfData[url] = Promise.all(requests)
-      .then(responses => {
+      .then(async responses => {
+        if (
+          hlMarkets.length &&
+          !responses.some(response => response?.data?.length)
+        ) {
+          // No trade in the window on any market (quiet spot / HIP-3 pane): take
+          // the newest earlier candles instead, so the chart can page back from them
+          responses = await Promise.all(
+            hlMarkets.map(market =>
+              this.fetchHyperliquid(from, to, timeframe, market, true)
+            )
+          )
+          // from where every market has all of its candles: no gap in any
+          const start = Math.max(
+            ...responses.map(response =>
+              response?.data?.length ? response.data[0].time : -Infinity
+            )
+          )
+          responses.forEach((response, index) => {
+            if (response?.data?.length) {
+              response.data = response.data.filter(bar => bar.time >= start)
+              response.initialPrices = response.data.length
+                ? { [hlMarkets[index]]: response.data[0].close }
+                : {}
+            }
+          })
+        }
+
         const data = responses
           .flatMap(response => response?.data || [])
           .sort((a, b) => a.time - b.time)
@@ -125,7 +155,12 @@ class HistoricalService extends EventEmitter {
       })
       .catch(err => {
         if (err.message !== 'No more data') {
-          handleFetchError(err)
+          // HL-only history goes straight to Hyperliquid, never a Purr server
+          handleFetchError(
+            !apiMarkets.length && err instanceof TypeError
+              ? new Error('Unable to reach Hyperliquid for chart history')
+              : err
+          )
         }
         throw err
       })
@@ -137,7 +172,7 @@ class HistoricalService extends EventEmitter {
     return this.promisesOfData[url]
   }
 
-  async fetchHyperliquid(from, to, timeframe, market) {
+  async fetchHyperliquid(from, to, timeframe, market, wide?: boolean) {
     const interval = hyperliquidIntervals[timeframe]
     if (!interval) {
       return
@@ -145,32 +180,38 @@ class HistoricalService extends EventEmitter {
 
     const step = timeframe * 1000
     const now = Math.floor(Date.now() / step) * step
+    const oldest = now - 4999 * step
     // The chart initially asks for 20 bars; load a month on its first 1h fetch.
     if (timeframe === 3600 && to > now) {
       from = Math.min(from, now - 30 * 86400000)
     }
     // HL retains only the latest 5000 candles, including the current candle.
-    from = Math.max(Math.ceil(from / step) * step, now - 4999 * step)
+    from = Math.max(Math.ceil(from / step) * step, oldest)
     const endTime = Math.min(Math.ceil(to / step) * step - step, now)
-    if (from > endTime) {
+    // wide: the window was empty, look back to the oldest candle instead
+    if (from > endTime || (wide && from === oldest)) {
       return
     }
 
     let [, coin] = parseMarket(market)
     if (coin.includes('/')) {
-      const products = await requestExchangeProductsData('HYPERLIQUID')
-      coin = products?.spotCoins?.[coin]
-      if (!coin) {
+      if (!spotCoins[coin]) {
+        const products = await requestExchangeProductsData('HYPERLIQUID')
+        Object.assign(spotCoins, products?.spotCoins)
+      }
+      if (!spotCoins[coin]) {
         throw new Error(`Unknown Hyperliquid spot market: ${market}`)
       }
+      coin = spotCoins[coin]
     }
 
+    const startTime = wide ? oldest : from
     const response = await fetch('https://api.hyperliquid.xyz/info', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         type: 'candleSnapshot',
-        req: { coin, interval, startTime: from, endTime }
+        req: { coin, interval, startTime, endTime }
       })
     })
     if (!response.ok) {
@@ -197,12 +238,14 @@ class HistoricalService extends EventEmitter {
     }
 
     const points = candles
-      .filter(candle => candle.t >= from && candle.t <= endTime)
+      .filter(candle => candle.t >= startTime && candle.t <= endTime)
       .sort((a, b) => a.t - b.t)
+      // wide: only the newest candles, as many as the window holds
+      .slice(-((endTime - from) / step + 1))
       .map(candle => {
         // normalizePoints expects quote volume in array rows, and divides once for base sizing.
         const volume = +candle.v * +candle.c
-        // ponytail: HL candles have no taker split; delta/CVD/liquidation history is live-only
+        // HL candles have no taker split: delta/CVD/liquidation history is live-only
         return [
           candle.t / 1000,
           market,

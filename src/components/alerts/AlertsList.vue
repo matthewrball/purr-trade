@@ -205,6 +205,8 @@ export default class AlertsList extends Vue {
 
   async created() {
     aggregatorService.on('decimals', this.onDecimals)
+    // before the await: a local alert can trigger while the list loads
+    aggregatorService.on('alert', this.onAlert)
 
     await this.getAlerts()
 
@@ -215,8 +217,6 @@ export default class AlertsList extends Vue {
         this.$store.commit('settings/TOGGLE_SECTION', singleSectionId)
       }
     }
-
-    aggregatorService.on('alert', this.onAlert)
   }
 
   beforeDestroy() {

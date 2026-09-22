@@ -638,7 +638,28 @@ export default class Trades extends Mixins(PaneMixin) {
   }
 
   .trade__name {
+    // one line high: a name with no room for 2 characters wraps out of sight,
+    // as the tags do, instead of a sliver between the avatar and the whale
+    display: flex;
+    flex-wrap: wrap;
+    height: 1.4em;
+    line-height: 1.4em;
     min-width: 0;
+    // wide glyphs (U+FDFD) ellipsize instead of squeezing the row
+    max-width: 32ch;
+    overflow: hidden;
+
+    // empty first item: the name itself can wrap away
+    &:before {
+      content: '';
+      height: 100%;
+    }
+  }
+
+  .trade__text {
+    flex: 1 0 auto;
+    min-width: 2em;
+    max-width: 100%;
     overflow: hidden;
     text-overflow: ellipsis;
   }

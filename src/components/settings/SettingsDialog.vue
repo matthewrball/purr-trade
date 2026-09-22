@@ -122,7 +122,7 @@
               class="table-input table-ellipsis text-nowrap text-color-base"
               :class="[workspace.id === currentWorkspace.id && 'text-bold']"
               v-text="workspace.name"
-              :title="`${workspace.name}<br>created ${ago(
+              :title="`${escapeHtml(workspace.name)}<br>created ${ago(
                 workspace.createdAt
               )} ago`"
               v-tippy="{ boundary: 'window', placement: 'left' }"
@@ -393,6 +393,7 @@
 
 <script>
 import { ago, browseFile } from '../../utils/helpers'
+import { escapeHtml } from '@/components/trades/wallet'
 
 import Dialog from '@/components/framework/Dialog.vue'
 import Exchange from './Exchange.vue'
@@ -709,6 +710,11 @@ export default {
 
     ago(timestamp) {
       return ago(timestamp)
+    },
+
+    // workspace names come from urls and imported files, the tooltip is html
+    escapeHtml(text) {
+      return escapeHtml(text)
     },
 
     toggleWorkspaceDropdown(event, workspaceId) {

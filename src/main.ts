@@ -37,6 +37,25 @@ if ('serviceWorker' in navigator) {
   })
 }
 
+// a deploy replaced the lazy chunks this tab was built with: reload
+// (not again within a minute, when the reloaded page fails the same way)
+window.addEventListener('vite:preloadError', event => {
+  try {
+    const lastReload = Number(sessionStorage.getItem('purr-chunk-reload'))
+
+    if (Date.now() - lastReload < 60000) {
+      return
+    }
+
+    sessionStorage.setItem('purr-chunk-reload', String(Date.now()))
+  } catch (error) {
+    return
+  }
+
+  event.preventDefault()
+  location.reload()
+})
+
 new Vue({
   el: '#app',
   store,
