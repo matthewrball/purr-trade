@@ -6,8 +6,12 @@ Source code: https://github.com/matthewrball/purr-trade
 
 ## What it does
 
-- Streams live trades from Hyperliquid perps, spot (e.g. `HYPE/USDC`) and HIP-3 markets, with the taker's wallet on large trades
-- Shows liquidations in their own pane
+- Streams live trades from Hyperliquid perps, spot (e.g. `HYPE/USDC`) and HIP-3 markets
+- Shows who took large trades: a profile chip with the best known name (HLP, vaults, validators, leaderboard and `.hl` names) and a whale badge, plus a wallet card with account value, positions and 30-day PnL, linked to Hyperdash
+- Tags Hyperliquid TWAP fills and known makers (Assistance Fund, HLP, validators)
+- HL Markets pane: funding, open interest, premium and open-interest caps across perps, spot and HIP-3
+- Price alerts and whale-trade notifications that work while Purr is open in a tab
+- Shows liquidations in their own pane when a liquidation feed is configured (`VITE_APP_LIQUIDATIONS_URL`)
 - Charts price, volume and custom indicators, with Hyperliquid candle history loaded straight from Hyperliquid
 - Can mix in markets from other exchanges (Binance, Bybit, Coinbase, OKX, Bitget and more, see [src/worker/exchanges/](src/worker/exchanges))
 - Plays dynamic audio based on trade size
@@ -39,7 +43,7 @@ npm run serve   # dev server on localhost:8080
 Production build:
 
 ```bash
-npm run build       # output in dist/
+npm run build       # output in dist/ (prebuild also writes exchange catalogs and public/profiles.json)
 npm run serve:dist  # serves dist/ on localhost:8060
 ```
 
