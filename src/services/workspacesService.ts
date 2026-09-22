@@ -303,6 +303,15 @@ class WorkspacesService {
       // try get workspace from id in the url
       workspace = await this.getWorkspace(urlWorkspaceId)
 
+      if (
+        workspace &&
+        (workspace.deepLink || this.isCoinWorkspace(workspace))
+      ) {
+        // the visitor is back on a coin deep link (/hype, /xyz-tsla): it opens
+        // as always, but it still doesn't become the home workspace
+        await this.markDeepLink(workspace)
+      }
+
       if (!workspace && !urlPairs && this.urlStrategy !== 'hash') {
         // single segment that isn't a workspace id (/HYPE, /hype-usdc, /xyz:tsla)
         // open it in its own workspace, never over the visitor's current one
@@ -313,6 +322,15 @@ class WorkspacesService {
     if (!workspace && lastWorkspaceId) {
       // try get workspace from id in the localStorage
       workspace = await this.getWorkspace(lastWorkspaceId)
+
+      if (
+        workspace &&
+        (workspace.deepLink || this.isCoinWorkspace(workspace))
+      ) {
+        // it was stored as home by a coin deep link (before deepLink was kept):
+        // "/" is the visitor's own workspace, never a coin page
+        workspace = null
+      }
     }
 
     if (!workspace) {
@@ -335,6 +353,40 @@ class WorkspacesService {
     }
 
     return workspace
+  }
+
+  /**
+   * Remember (on the workspace, so it survives reloads and shared links) that
+   * this workspace belongs to a coin deep link
+   */
+  async markDeepLink(workspace: Workspace) {
+    this.urlSegmentWorkspaceId = workspace.id
+
+    if (!workspace.deepLink) {
+      workspace.deepLink = true
+      await this.saveWorkspace(workspace)
+    }
+  }
+
+  /**
+   * Workspace created by a coin deep link before deepLink was stored:
+   * named after the coin, every pane on that one market
+   */
+  isCoinWorkspace(workspace: Workspace) {
+    const panes =
+      workspace.states && workspace.states.panes && workspace.states.panes.panes
+    const markets = panes && Object.keys(panes).map(id => panes[id].markets)
+
+    return (
+      !!markets &&
+      markets.length > 0 &&
+      markets.every(
+        paneMarkets =>
+          paneMarkets &&
+          paneMarkets.length === 1 &&
+          paneMarkets[0] === 'HYPERLIQUID:' + workspace.name
+      )
+    )
   }
 
   /**
@@ -365,7 +417,7 @@ class WorkspacesService {
       workspace =
         (await this.getWorkspace(slugify(coin))) ||
         (await this.createWorkspace(coin, ['HYPERLIQUID:' + coin]))
-      this.urlSegmentWorkspaceId = workspace.id
+      await this.markDeepLink(workspace)
 
       return workspace
     }
@@ -379,7 +431,7 @@ class WorkspacesService {
         .map(pair => stripStablePair(pair.toUpperCase()))
 
       workspace = await this.createWorkspace(segment)
-      this.urlSegmentWorkspaceId = workspace.id
+      await this.markDeepLink(workspace)
 
       return workspace
     }
@@ -504,7 +556,10 @@ class WorkspacesService {
       window.history.replaceState('Object', 'Title', '/' + this.workspace.id)
     }
 
-    if (this.workspace.id !== this.urlSegmentWorkspaceId) {
+    if (
+      !this.workspace.deepLink &&
+      this.workspace.id !== this.urlSegmentWorkspaceId
+    ) {
       // a coin deep link (/hype, /xyz:tsla) stays a visit: "/" keeps opening
       // the workspace the visitor was using before
       localStorage.setItem('workspace', this.workspace.id)

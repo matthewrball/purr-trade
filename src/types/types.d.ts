@@ -90,6 +90,8 @@ export interface GifsStorage {
 }
 export interface Workspace {
   version?: number
+  // opened by a coin deep link (/hype, /xyz:tsla): never the home workspace
+  deepLink?: boolean
   createdAt: number
   updatedAt: number
   id: string

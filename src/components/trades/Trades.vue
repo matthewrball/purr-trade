@@ -697,9 +697,19 @@ export default class Trades extends Mixins(PaneMixin) {
     margin-left: 0.25em;
   }
 
-  // narrower than the default pane: the chip gives way again rather than
-  // pushing the amount off the row
+  // narrower than the default pane (a 1280px laptop gives ~213px): keep the
+  // avatar and one character rather than pushing the amount off the row
   @container (max-width: 220px) {
+    .trade__wallet {
+      min-width: calc(1.35em + 1ch);
+    }
+
+    .trade__text {
+      min-width: 1ch;
+    }
+  }
+
+  @container (max-width: 190px) {
     .trade__wallet {
       min-width: 0;
     }
