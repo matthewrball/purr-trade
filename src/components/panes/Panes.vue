@@ -23,6 +23,7 @@
       :w="gridItem.w"
       :h="gridItem.h"
       :i="gridItem.i"
+      :class="{ '-origin': gridItem.x === 0 && gridItem.y === 0 }"
       @container-resized="onContainerResized"
       @resized="onItemResized"
     >

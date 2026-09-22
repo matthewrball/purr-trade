@@ -116,6 +116,11 @@
   }
 
   &-header {
+    // the top-left pane leaves room for the fixed menu button
+    .vue-grid-item.-origin & {
+      padding-left: 3rem;
+    }
+
     position: relative;
     display: flex;
     align-items: stretch;
