@@ -2,6 +2,7 @@
 node_modules
 /dist
 /public/catalogs
+/public/profiles.json
 src-tauri
 stats.html
 dev-dist

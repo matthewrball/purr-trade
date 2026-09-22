@@ -18,7 +18,8 @@ import dialogService from '@/services/dialogService'
 
 enum StaticPaneType {
   website = 'website',
-  alerts = 'alerts'
+  alerts = 'alerts',
+  'hl-markets' = 'hl-markets'
 }
 
 export enum PaneType {
@@ -29,7 +30,8 @@ export enum PaneType {
   prices = 'prices',
   website = 'website',
   alerts = 'alerts',
-  'trades-list' = 'trades-lite'
+  'trades-list' = 'trades-lite',
+  'hl-markets' = 'hl-markets'
 }
 
 export type MarketsListeners = { [market: string]: ListenedProduct }

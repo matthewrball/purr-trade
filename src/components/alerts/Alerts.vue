@@ -20,6 +20,10 @@
       v-model="query"
     />
     <alerts-list ref="list" :query="query" persist-sections />
+    <alerts-notifications
+      v-if="localAlerts"
+      class="pane-alerts__notifications"
+    />
   </div>
 </template>
 
@@ -31,13 +35,22 @@ import PaneMixin from '@/mixins/paneMixin'
 import PaneHeader from '../panes/PaneHeader.vue'
 import Btn from '@/components/framework/Btn.vue'
 import AlertsList from '@/components/alerts/AlertsList.vue'
+import AlertsNotifications from '@/components/alerts/AlertsNotifications.vue'
+import { LOCAL_ALERTS } from '@/utils/constants'
 
 @Component({
-  components: { PaneHeader, ToggableSection, AlertsList, Btn },
+  components: {
+    PaneHeader,
+    ToggableSection,
+    AlertsList,
+    AlertsNotifications,
+    Btn
+  },
   name: 'Alerts'
 })
 export default class Alerts extends Mixins(PaneMixin) {
   query = ''
+  localAlerts = LOCAL_ALERTS
 }
 </script>
 
@@ -61,6 +74,11 @@ export default class Alerts extends Mixins(PaneMixin) {
 
   &__header {
     background: 0;
+  }
+
+  &__notifications {
+    flex-shrink: 0;
+    padding: 0.5rem 1rem;
   }
 }
 </style>

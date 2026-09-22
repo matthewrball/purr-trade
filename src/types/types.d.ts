@@ -26,6 +26,7 @@ export interface AggregatorSettings {
   preferQuoteCurrencySize?: boolean
   wsProxyUrl?: string
   buckets?: { [bucketId: string]: string[] }
+  makerEntities?: { [address: string]: boolean }
 }
 
 export interface Market {
@@ -42,6 +43,9 @@ export interface Trade {
   size: number
   side: 'buy' | 'sell'
   user?: string
+  maker?: string
+  hash?: string
+  twap?: boolean
   originalPrice?: number
   avgPrice?: number
   amount?: number

@@ -5,5 +5,6 @@ export default {
   aggregationLength: null,
   preferQuoteCurrencySize: null,
   wsProxyUrl: null,
-  buckets: {}
+  buckets: {},
+  makerEntities: {}
 } as AggregatorSettings

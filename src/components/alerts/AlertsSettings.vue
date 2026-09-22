@@ -8,6 +8,7 @@
     <p class="mt0 text-color-50">
       <i class="icon-info"></i> Uses average price of the coin
     </p>
+    <AlertsNotifications v-if="localAlerts" class="mb16" />
     <div class="column">
       <div class="form-group">
         <label>Line style</label>
@@ -86,7 +87,7 @@
       </div>
     </div>
 
-    <template #off>
+    <template v-if="!localAlerts" #off>
       <label
         v-if="notificationsPermissionState === 'denied'"
         class="text-danger help-text mt0 mb0"
@@ -113,8 +114,11 @@ import DropdownButton from '@/components/framework/DropdownButton.vue'
 import ToggableGroup from '@/components/framework/ToggableGroup.vue'
 import ColorPickerControl from '@/components/framework/picker/ColorPickerControl.vue'
 
+import AlertsNotifications from '@/components/alerts/AlertsNotifications.vue'
+
 import audioService from '@/services/audioService'
 import importService from '@/services/importService'
+import { LOCAL_ALERTS } from '@/utils/constants'
 
 let notificationsPermission
 
@@ -122,7 +126,8 @@ let notificationsPermission
   components: {
     DropdownButton,
     ToggableGroup,
-    ColorPickerControl
+    ColorPickerControl,
+    AlertsNotifications
   },
   name: 'AlertsSettings'
 })
@@ -132,6 +137,7 @@ export default class AlertsSettings extends Vue {
     'notifications-grant': 'Enable notifications for this site in your browser.'
   }
   notificationsPermissionState = 'granted'
+  localAlerts = LOCAL_ALERTS
 
   get alertSound() {
     return this.$store.state.settings.alertSound
@@ -197,7 +203,12 @@ export default class AlertsSettings extends Vue {
   setNotificationsPermission(state) {
     this.notificationsPermissionState = state
 
-    if (this.notificationsPermissionState !== 'granted' && this.alerts) {
+    // push alerts need the permission, local alerts only use it when granted
+    if (
+      !LOCAL_ALERTS &&
+      this.notificationsPermissionState !== 'granted' &&
+      this.alerts
+    ) {
       this.$store.commit('settings/TOGGLE_ALERTS', false)
     }
   }
@@ -205,11 +216,15 @@ export default class AlertsSettings extends Vue {
   async toggleAlerts(event) {
     let checked = event.target.checked
 
-    if (checked) {
+    if (checked && !LOCAL_ALERTS) {
       this.notificationsPermissionState = await Notification.requestPermission()
     }
 
-    if (this.notificationsPermissionState === 'denied' && checked) {
+    if (
+      !LOCAL_ALERTS &&
+      this.notificationsPermissionState === 'denied' &&
+      checked
+    ) {
       checked = false
 
       this.$store.dispatch('app/showNotice', {

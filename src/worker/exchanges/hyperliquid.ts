@@ -317,7 +317,11 @@ export default class HYPERLIQUID extends Exchange {
       size: +t.sz,
       side: t.side === 'B' ? 'buy' : 'sell',
       // Aggregation only merges fills from this same taker.
-      user: t.users?.[t.side === 'B' ? 0 : 1]
+      user: t.users?.[t.side === 'B' ? 0 : 1],
+      maker: t.users?.[t.side === 'B' ? 1 : 0],
+      hash: t.hash,
+      // all-zero hash = a TWAP slice fill (not a liquidation, lane C3)
+      twap: /^0x0+$/.test(t.hash)
     }
   }
 }

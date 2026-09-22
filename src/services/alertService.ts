@@ -1,8 +1,17 @@
 import store from '@/store'
+import { TradesPaneState } from '@/store/panesSettings/trades'
+import { Trade } from '@/types/types'
+import { LOCAL_ALERTS } from '@/utils/constants'
 import { getApiUrl, handleFetchError } from '@/utils/helpers'
 import aggregatorService from './aggregatorService'
+import audioService from './audioService'
 import dialogService from './dialogService'
-import { formatMarketPrice } from './productsService'
+import {
+  formatAmount,
+  formatMarketPrice,
+  getMarketLabel,
+  stripStablePair
+} from './productsService'
 import workspacesService from './workspacesService'
 
 interface AlertResponse {
@@ -52,6 +61,11 @@ class AlertService {
   private pushSubscription: PushSubscription
   private url: string
   private _promiseOfSync: Promise<void>
+
+  // local (in-tab) alerts
+  private tickerPrices: { [marketKey: string]: number } = {}
+  private indexPrices: { [index: string]: number } = {}
+  private notificationsOffered = false
 
   constructor() {
     this.url = getApiUrl('alert')
@@ -112,6 +126,16 @@ class AlertService {
    * Update alerts triggered status using pending notifications
    */
   async syncTriggeredAlerts() {
+    // trades panes "Notify on trades >= $X" (in-tab, push or local mode)
+    aggregatorService.on('trades', this.onTrades.bind(this))
+
+    if (LOCAL_ALERTS) {
+      // no alert server: this tab evaluates the stored alerts on live prices
+      this._promiseOfSync = this.loadAllAlerts()
+      aggregatorService.on('tickers', this.onTickers.bind(this))
+      return
+    }
+
     this._promiseOfSync = new Promise<void>(resolve => {
       // recover recent triggers
       navigator.serviceWorker.ready.then(async registration => {
@@ -270,6 +294,11 @@ class AlertService {
     status?: boolean,
     message?: string
   ): Promise<AlertResponse> {
+    if (LOCAL_ALERTS) {
+      // nothing to register: the tab evaluates stored alerts (see onTickers)
+      return unsubscribe ? { alert: { market, price } } : {}
+    }
+
     const subscription = await this.getPushSubscription()
 
     if (!subscription) {
@@ -370,6 +399,10 @@ class AlertService {
         message: createdAlert.message,
         type: AlertEventType.ACTIVATED
       })
+
+      if (LOCAL_ALERTS) {
+        this.offerNotifications()
+      }
     }
 
     workspacesService.saveAlerts({
@@ -428,6 +461,15 @@ class AlertService {
 
           return false
         })
+    } else if (LOCAL_ALERTS) {
+      // moved or edited: armed again for this tab
+      newAlert.triggered = false
+      newAlert.active = true
+
+      store.dispatch('app/showNotice', {
+        title: `${newAlert.price !== price ? 'Moved' : 'Updated'} ${market} ${this.getNoticeLabel(market, newAlert.price)}`,
+        type: 'success'
+      })
     }
 
     const alert = await this.getAlert(market, price)
@@ -547,6 +589,335 @@ class AlertService {
     }
 
     return priceLabel + offsetLabel
+  }
+
+  /**
+   * Local alerts: cache every stored alert so the tab can evaluate them
+   */
+  private async loadAllAlerts() {
+    const groups: MarketAlerts[] = await workspacesService.getAllAlerts()
+
+    for (const group of groups) {
+      if (!this.alerts[group.market]) {
+        this.alerts[group.market] = group.alerts
+      }
+    }
+  }
+
+  /**
+   * Local alerts: average price of each coin (grouped like the chart does,
+   * "Uses average price of the coin") checked against its alerts on every tickers update
+   */
+  private onTickers(tickers: { [marketKey: string]: { price: number } }) {
+    for (const marketKey in tickers) {
+      this.tickerPrices[marketKey] = tickers[marketKey].price
+    }
+
+    const totals: { [index: string]: { sum: number; count: number } } = {}
+
+    for (const marketKey in this.tickerPrices) {
+      const product = store.state.panes.marketsListeners[marketKey]
+
+      if (!product || !product.local) {
+        delete this.tickerPrices[marketKey]
+        continue
+      }
+
+      const index = stripStablePair(product.local)
+
+      if (!totals[index]) {
+        totals[index] = { sum: 0, count: 0 }
+      }
+
+      totals[index].sum += this.tickerPrices[marketKey]
+      totals[index].count++
+    }
+
+    for (const index in totals) {
+      const price = totals[index].sum / totals[index].count
+      const previousPrice = this.indexPrices[index]
+
+      this.indexPrices[index] = price
+
+      if (
+        previousPrice &&
+        store.state.settings.alerts &&
+        this.alerts[index] &&
+        this.alerts[index].length
+      ) {
+        this.checkAlerts(index, previousPrice, price)
+      }
+    }
+  }
+
+  private checkAlerts(index: string, previousPrice: number, price: number) {
+    for (const alert of this.alerts[index]) {
+      if (!alert.active || alert.triggered) {
+        continue
+      }
+
+      const crossedUp = previousPrice < alert.price && price >= alert.price
+      const crossedDown = previousPrice > alert.price && price <= alert.price
+
+      if (crossedUp || crossedDown) {
+        this.triggerLocalAlert(alert, price, crossedUp)
+      }
+    }
+  }
+
+  private triggerLocalAlert(alert: MarketAlert, price: number, up: boolean) {
+    alert.triggered = true
+
+    workspacesService.saveAlerts({
+      market: alert.market,
+      alerts: this.alerts[alert.market]
+    })
+
+    aggregatorService.emit('alert', {
+      price: alert.price,
+      market: alert.market,
+      message: alert.message,
+      type: AlertEventType.TRIGGERED
+    })
+
+    const alertPrice = formatMarketPrice(alert.price, alert.market)
+
+    store.dispatch('app/showNotice', {
+      id: `alert-${alert.market}-${alert.price}`,
+      type: 'info',
+      icon: up ? 'icon-up' : 'icon-down',
+      title:
+        `${alert.market} crossed ${alertPrice}` +
+        (alert.message ? `\n${alert.message}` : ''),
+      timeout: 0
+    })
+
+    this.playAlertSound()
+
+    this.showBrowserNotification(
+      `${alert.market} ${up ? '↑' : '↓'} ${alertPrice}`,
+      (alert.message ? alert.message + '\n' : '') +
+        `Price crossed ${alertPrice} (now ${formatMarketPrice(
+          price,
+          alert.market
+        )})`,
+      `purr-alert-${alert.market}-${alert.price}`
+    )
+  }
+
+  private playAlertSound() {
+    const alertSound = store.state.settings.alertSound
+
+    if (alertSound) {
+      audioService.playOnce(alertSound).catch(err => {
+        console.error(`[alertService] failed to play ${alertSound}`, err)
+      })
+    } else {
+      audioService.playChime()
+    }
+  }
+
+  getNotificationsPermission(): NotificationPermission | 'unsupported' {
+    return 'Notification' in window ? Notification.permission : 'unsupported'
+  }
+
+  /**
+   * Ask for browser notifications. Only call it from a click handler
+   */
+  requestNotifications(): Promise<NotificationPermission | 'unsupported'> {
+    if (!('Notification' in window)) {
+      return Promise.resolve('unsupported')
+    }
+
+    return new Promise<NotificationPermission>(resolve => {
+      // older Safari only supports the callback form
+      const promise = Notification.requestPermission(resolve)
+
+      if (promise) {
+        promise.then(resolve, () => resolve(Notification.permission))
+      }
+    }).then(permission => {
+      store.dispatch('app/showNotice', {
+        id: 'alert-notifications-result',
+        type: permission === 'granted' ? 'success' : 'info',
+        title:
+          permission === 'granted'
+            ? 'Browser notifications are on'
+            : 'Browser notifications are off.\nAlerts still show here while Purr is open.'
+      })
+
+      return permission
+    })
+  }
+
+  /**
+   * After a local alert is created: offer browser notifications (the click on the notice is the user gesture)
+   */
+  private offerNotifications() {
+    if (
+      this.notificationsOffered ||
+      this.getNotificationsPermission() !== 'default'
+    ) {
+      return
+    }
+
+    this.notificationsOffered = true
+
+    store.dispatch('app/showNotice', {
+      id: 'alert-notifications',
+      type: 'info',
+      timeout: 15000,
+      title:
+        'Alerts work while Purr is open in a tab.\nClick here to also get browser notifications.',
+      action: () => {
+        this.requestNotifications()
+      }
+    })
+  }
+
+  private async showBrowserNotification(
+    title: string,
+    body: string,
+    tag: string
+  ) {
+    if (this.getNotificationsPermission() !== 'granted') {
+      return
+    }
+
+    const base_url = import.meta.env.VITE_APP_BASE_PATH || '/'
+    const options = {
+      body,
+      tag,
+      icon: `${base_url}android-chrome-192x192.png`,
+      data: { url: location.href }
+    }
+
+    try {
+      const registration =
+        'serviceWorker' in navigator &&
+        (await navigator.serviceWorker.getRegistration(`${base_url}sw.js`))
+
+      if (registration) {
+        // sw.js focuses the tab on click
+        await registration.showNotification(title, options)
+        return
+      }
+    } catch (error) {
+      console.error('[alertService] service worker notification failed', error)
+    }
+
+    try {
+      const notification = new Notification(title, options)
+
+      notification.onclick = () => {
+        window.focus()
+        notification.close()
+      }
+    } catch (error) {
+      console.error('[alertService] notification failed', error)
+    }
+  }
+
+  /**
+   * Trades panes "Notify on trades >= $X": large prints while the tab is hidden
+   */
+  private onTrades(trades: Trade[]) {
+    if (!document.hidden) {
+      return
+    }
+
+    const thresholds = this.getTradePrintThresholds()
+
+    if (!thresholds) {
+      return
+    }
+
+    let print: Trade
+    let printValue = 0
+    let count = 0
+
+    for (let i = 0; i < trades.length; i++) {
+      const trade = trades[i]
+
+      if (trade.liquidation || !trade.size || !trade.price) {
+        continue
+      }
+
+      const threshold = thresholds[trade.exchange + ':' + trade.pair]
+
+      if (!threshold) {
+        continue
+      }
+
+      const value = (trade.avgPrice || trade.price) * trade.size
+
+      if (value < threshold) {
+        continue
+      }
+
+      count++
+
+      if (value > printValue) {
+        print = trade
+        printValue = value
+      }
+    }
+
+    if (print) {
+      this.notifyTradePrint(print, printValue, count)
+    }
+  }
+
+  private getTradePrintThresholds() {
+    let thresholds: { [marketKey: string]: number }
+
+    for (const paneId in store.state.panes.panes) {
+      const pane = store.state.panes.panes[paneId]
+
+      if (pane.type !== 'trades' && pane.type !== 'trades-lite') {
+        continue
+      }
+
+      const threshold = (store.state[paneId] as TradesPaneState)
+        ?.notifyThreshold
+
+      if (!(threshold > 0) || !pane.markets) {
+        continue
+      }
+
+      for (const marketKey of pane.markets) {
+        if (!thresholds) {
+          thresholds = {}
+        }
+
+        if (!thresholds[marketKey] || threshold < thresholds[marketKey]) {
+          thresholds[marketKey] = threshold
+        }
+      }
+    }
+
+    return thresholds
+  }
+
+  private notifyTradePrint(trade: Trade, value: number, count: number) {
+    const marketKey = trade.exchange + ':' + trade.pair
+    const product = store.state.panes.marketsListeners[marketKey]
+    const label = product ? getMarketLabel(product) : trade.pair
+    const title = `${label} ${trade.side} $${formatAmount(value)}`
+    const body =
+      `@ ${formatMarketPrice(trade.price, marketKey)}` +
+      (count > 1 ? ` (+${count - 1} more)` : '')
+
+    store.dispatch('app/showNotice', {
+      id: 'trade-print',
+      update: true,
+      type: 'info',
+      icon: trade.side === 'buy' ? 'icon-up' : 'icon-down',
+      title: `${title} ${body}`,
+      timeout: 0
+    })
+
+    this.showBrowserNotification(title, body, 'purr-trade-print')
   }
 }
 

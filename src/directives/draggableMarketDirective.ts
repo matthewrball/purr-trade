@@ -1,6 +1,7 @@
 import iframeService from '@/services/iframeService'
 import store from '@/store'
 import { ListenedProduct } from '@/store/app'
+import { getMarketProduct, parseMarket } from '@/services/productsService'
 import { INFRAME } from '@/utils/constants'
 import { mountComponent, createComponent, getEventCords } from '@/utils/helpers'
 import { isTouchSupported } from '@/utils/touchevent'
@@ -98,7 +99,9 @@ function getMarketContext(el) {
 
   let marketData
   if (/:/.test(textContent)) {
-    marketData = markets[textContent]
+    // markets board rows are not necessarily listened to yet
+    const [exchange, pair] = parseMarket(textContent)
+    marketData = markets[textContent] || getMarketProduct(exchange, pair)
   } else {
     marketData =
       markets[

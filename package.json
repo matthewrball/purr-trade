@@ -8,7 +8,7 @@
     "svg2font": "node scripts/svg2font.js",
     "serve": "vite --host",
     "prod": "vue-tsc --noEmit && vite build --dest ./temp && rimraf ./dist && mv ./temp ./dist",
-    "prebuild": "node scripts/build-catalogs.mjs",
+    "prebuild": "node scripts/build-catalogs.mjs && node scripts/build-profiles.mjs",
     "build": "vite build",
     "lint": "eslint",
     "lint:fix": "eslint --fix",

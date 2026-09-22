@@ -71,6 +71,16 @@
         </button>
         <button
           class="dropdown-item dropdown-item--space-between"
+          @click="addPane('hl-markets')"
+        >
+          <div>
+            <div>HL Markets</div>
+            <div class="dropdown-item__subtitle">24h, funding & OI</div>
+          </div>
+          <i class="icon-plus" />
+        </button>
+        <button
+          class="dropdown-item dropdown-item--space-between"
           @click="addPane('website')"
         >
           <div>

@@ -674,6 +674,63 @@ class AudioService {
   }
 
   /**
+   * Built-in two-note chime for local price alerts (when no alert sound is set)
+   * Goes through the audio output when audio is on, else through a short-lived context
+   */
+  playChime() {
+    const notes = [880, 1318.51]
+
+    if (this.context && this.context.state === 'running' && this.output) {
+      notes.forEach((frequency, i) =>
+        this.play(frequency, 0.5, 0.6, i * 0.12, 0, 0, 'triangle', 0.001, 0.001)
+      )
+      return
+    }
+
+    const AudioContextClass =
+      (window as any).AudioContext || (window as any).webkitAudioContext
+
+    if (!AudioContextClass) {
+      return
+    }
+
+    const context: AudioContext = new AudioContextClass()
+    const gain = Math.min(1, 0.5 * (store.state.settings.audioVolume ?? 1))
+
+    const start = () => {
+      if (context.state !== 'running' || !gain) {
+        // no user gesture on this page yet (autoplay policy): stay silent
+        context.close()
+        return
+      }
+
+      notes.forEach((frequency, i) => {
+        const time = context.currentTime + i * 0.12
+        const oscillator = context.createOscillator()
+        const gainNode = context.createGain()
+
+        oscillator.type = 'triangle'
+        oscillator.frequency.value = frequency
+        gainNode.gain.setValueAtTime(gain, time)
+        gainNode.gain.exponentialRampToValueAtTime(0.001, time + 0.6)
+        oscillator.connect(gainNode)
+        gainNode.connect(context.destination)
+        oscillator.start(time)
+        oscillator.stop(time + 0.6)
+      })
+
+      setTimeout(() => context.close(), 1500)
+    }
+
+    if (context.state === 'running') {
+      start()
+    } else {
+      context.resume().catch(() => undefined)
+      setTimeout(start, 250)
+    }
+  }
+
+  /**
    * Play a saved audio buffer by it's ID
    * @param id savedAudioBuffers key
    * @param duration in ms (optional)

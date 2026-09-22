@@ -71,7 +71,7 @@
             <td class="table-input alerts-list-item__price">
               <span
                 v-if="alert.message"
-                v-tippy="{ followCursor: true, distance: 24 }"
+                v-tippy="{ followCursor: true, distance: 24, allowHTML: false }"
                 :title="alert.message"
               >
                 {{ formatPrice(alert.price, alert.market) }}
@@ -114,7 +114,9 @@
       <p v-else class="text-danger pl8">No alerts</p>
     </ToggableSection>
     <dropdown v-model="alertDropdownTrigger">
-      <template v-if="dropdownAlert && !dropdownAlert.triggered">
+      <template
+        v-if="!localAlerts && dropdownAlert && !dropdownAlert.triggered"
+      >
         <Btn
           type="button"
           class="dropdown-item -cases"
@@ -155,6 +157,7 @@ import dialogService from '@/services/dialogService'
 import aggregatorService from '@/services/aggregatorService'
 import { sleep } from '@/utils/helpers'
 import { formatMarketPrice } from '@/services/productsService'
+import { LOCAL_ALERTS } from '@/utils/constants'
 
 @Component({
   components: { ToggableSection, Btn },
@@ -180,6 +183,7 @@ export default class AlertsList extends Vue {
   indexes: MarketAlerts[] = []
   sections = []
   isLoading = false
+  localAlerts = LOCAL_ALERTS
   market: string
   query: string
 
@@ -200,6 +204,8 @@ export default class AlertsList extends Vue {
   }
 
   async created() {
+    aggregatorService.on('decimals', this.onDecimals)
+
     await this.getAlerts()
 
     if (this.filteredIndexes.length === 1) {
@@ -215,6 +221,7 @@ export default class AlertsList extends Vue {
 
   beforeDestroy() {
     aggregatorService.off('alert', this.onAlert)
+    aggregatorService.off('decimals', this.onDecimals)
   }
 
   async getAlerts() {
@@ -231,6 +238,11 @@ export default class AlertsList extends Vue {
 
   formatPrice(price, market) {
     return formatMarketPrice(price, market)
+  }
+
+  // prices render raw until their market's decimals are known (after a reload)
+  onDecimals() {
+    this.$forceUpdate()
   }
 
   togglePresetDropdown(event, alert) {
