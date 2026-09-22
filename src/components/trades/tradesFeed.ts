@@ -422,7 +422,9 @@ export default class TradesFeed {
             /….*/,
             '<span class="trade__tail">$&</span>'
           )
-    }</span></span>${wallet.whale ? '<span class="trade__whale">🐋</span>' : ''}</a>`
+    }</span>${
+      wallet.whale ? '<span class="trade__whale">🐋</span>' : ''
+    }</span></a>`
   }
 
   getTradesThesholds() {

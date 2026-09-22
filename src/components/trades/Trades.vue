@@ -69,7 +69,8 @@
       :class="[
         'hide-scrollbar',
         this.showLogos && '-logos',
-        !this.monochromeLogos && '-logos-colors'
+        !this.monochromeLogos && '-logos-colors',
+        singleExchange && '-single-exchange'
       ]"
     ></ul>
     <trades-placeholder
@@ -111,6 +112,16 @@ export default class Trades extends Mixins(PaneMixin) {
     return this.pane.markets[0]
   }
 
+  // every row is the same exchange: the logo column says nothing and the chip needs the room
+  get singleExchange() {
+    const markets = this.pane.markets
+
+    return (
+      markets.length > 0 &&
+      markets.every(market => market.split(':')[0] === markets[0].split(':')[0])
+    )
+  }
+
   get showLogos() {
     return this.$store.state[this.paneId].showLogos
   }
@@ -136,7 +147,8 @@ export default class Trades extends Mixins(PaneMixin) {
   }
 
   get minAmount() {
-    return (this.$store.state[this.paneId] as TradesPaneState).thresholds[0].amount
+    return (this.$store.state[this.paneId] as TradesPaneState).thresholds[0]
+      .amount
   }
 
   get gradient() {
@@ -325,6 +337,8 @@ export default class Trades extends Mixins(PaneMixin) {
 }
 
 .trades-list {
+  // so the chip minimum can stand down on very narrow panes
+  container-type: inline-size;
   margin: 0;
   padding: 0;
   overflow: auto;
@@ -383,6 +397,10 @@ export default class Trades extends Mixins(PaneMixin) {
         }
       }
     }
+  }
+  // a pane on one exchange: every row carries the same logo, so drop it
+  &.-single-exchange .trade__exchange {
+    display: none;
   }
 }
 
@@ -554,8 +572,11 @@ export default class Trades extends Mixins(PaneMixin) {
     color: inherit;
     text-decoration: none;
     white-space: nowrap;
-    // price and amount keep min-content, the chip shrinks after the tags
-    min-width: 0;
+    // prefer the whole chip, shrink after the tags, but never below
+    // avatar + 2 characters: it used to vanish on the biggest rows (decision 35)
+    flex: 0 1 max-content;
+    // avatar + its gap + 2 characters of the name
+    min-width: calc(1.35em + 2ch);
     overflow: hidden;
     margin-left: 0.5em;
     // stop where .trade__time starts, it overhangs the 2rem gutter on big rows
@@ -638,8 +659,9 @@ export default class Trades extends Mixins(PaneMixin) {
   }
 
   .trade__name {
-    // one line high: a name with no room for 2 characters wraps out of sight,
-    // as the tags do, instead of a sliver between the avatar and the whale
+    // one line high: what has no room wraps out of sight, as the tags do:
+    // the whale badge first, then a name with no room for 2 characters
+    // (decision 35), instead of a sliver between the avatar and the whale
     display: flex;
     flex-wrap: wrap;
     height: 1.4em;
@@ -657,8 +679,9 @@ export default class Trades extends Mixins(PaneMixin) {
   }
 
   .trade__text {
-    flex: 1 0 auto;
-    min-width: 2em;
+    // ellipsize down to 2 characters, then the name wraps out of sight
+    flex: 1 1 auto;
+    min-width: 2ch;
     max-width: 100%;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -672,6 +695,14 @@ export default class Trades extends Mixins(PaneMixin) {
   .trade__whale {
     flex-shrink: 0;
     margin-left: 0.25em;
+  }
+
+  // narrower than the default pane: the chip gives way again rather than
+  // pushing the amount off the row
+  @container (max-width: 220px) {
+    .trade__wallet {
+      min-width: 0;
+    }
   }
 
   .trade__time {
