@@ -2,7 +2,7 @@
   "name": "Purr",
   "short_name": "Purr",
   "start_url": "/",
-  "description": "Hyperliquid and crypto market trades aggregator",
+  "description": "Hyperliquid trades aggregator",
   "display": "standalone",
   "id":"/",
   "icons":[
