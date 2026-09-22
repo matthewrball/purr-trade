@@ -1,4 +1,4 @@
-// ponytail: static map, move to server API if labels need frequent updates
+// static labels map, move to a server API if labels need frequent updates
 import vaults from '@/assets/hl-vaults.json'
 import aggregatorService from '@/services/aggregatorService'
 
@@ -251,16 +251,31 @@ const INFO_CACHE_MS = 30000
 const INFO_MAX_IN_FLIGHT = 2
 const INFO_TIMEOUT_MS = 10000
 
-const infoCache: { [body: string]: { time: number; request: Promise<any> } } =
-  {}
+const infoCache: {
+  [body: string]: { time: number; request: Promise<any>; signal?: AbortSignal }
+} = {}
 const infoQueue: (() => void)[] = []
 let infoInFlight = 0
+
+function runNextInfo() {
+  const next = infoQueue.shift()
+
+  if (next) {
+    next()
+  }
+}
 
 /**
  * POST /info {type, user, dex?} on demand, cached ~30 s per request,
  * at most 2 in flight (clearinghouseState weighs 2, portfolio 20)
+ * a queued request whose latest caller aborted is never sent
  */
-export function fetchWalletInfo(type: string, user: string, dex?: string) {
+export function fetchWalletInfo(
+  type: string,
+  user: string,
+  dex?: string,
+  signal?: AbortSignal
+) {
   const body = JSON.stringify(dex ? { type, user, dex } : { type, user })
   const now = Date.now()
 
@@ -270,9 +285,19 @@ export function fetchWalletInfo(type: string, user: string, dex?: string) {
     }
   }
 
-  if (!infoCache[body]) {
+  if (infoCache[body]) {
+    infoCache[body].signal = signal
+  } else {
+    const entry = { time: now, request: null, signal }
     const request = new Promise<any>((resolve, reject) => {
       const run = () => {
+        // a replaced card's queued request: keep the visitor's HL weight
+        if (entry.signal && entry.signal.aborted) {
+          reject(new Error('Aborted'))
+          runNextInfo()
+          return
+        }
+
         const controller = new AbortController()
         const timeout = setTimeout(() => controller.abort(), INFO_TIMEOUT_MS)
 
@@ -295,12 +320,7 @@ export function fetchWalletInfo(type: string, user: string, dex?: string) {
           .finally(() => {
             clearTimeout(timeout)
             infoInFlight--
-
-            const next = infoQueue.shift()
-
-            if (next) {
-              next()
-            }
+            runNextInfo()
           })
       }
 
@@ -318,7 +338,8 @@ export function fetchWalletInfo(type: string, user: string, dex?: string) {
       }
     })
 
-    infoCache[body] = { time: now, request }
+    entry.request = request
+    infoCache[body] = entry
   }
 
   return infoCache[body].request

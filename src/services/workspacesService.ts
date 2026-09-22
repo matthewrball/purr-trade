@@ -364,7 +364,10 @@ class WorkspacesService {
       )
     }
 
-    if (segment.trim().length > 4) {
+    // the segment names the new workspace: market characters only, never markup
+    const safeName = /^[\w.:@+,-]+$/.test(segment)
+
+    if (safeName && segment.trim().length > 4) {
       this.pairsFromURL = segment
         .split(/\+|,/)
         .map(pair => stripStablePair(pair.toUpperCase()))
@@ -376,7 +379,7 @@ class WorkspacesService {
       workspace = await this.getWorkspace(lastWorkspaceId)
     }
 
-    return workspace || this.createWorkspace(segment)
+    return workspace || this.createWorkspace(safeName ? segment : null)
   }
 
   /**
@@ -389,6 +392,11 @@ class WorkspacesService {
     const name = segment.trim().replace(/^HYPERLIQUID:/i, '')
     const base = name.replace(/[-_/]?(USDC|USDT|USDH|USD|PERP)$/i, '')
     const candidates = base && base !== name ? [name, base] : [name]
+    // slugged HIP-3 coin (xyz-tsla, its workspace id in the address bar)
+    const slug = name.indexOf(':') === -1 && base.match(/^([a-z0-9]+)-(.+)$/i)
+    if (slug) {
+      candidates.push(`${slug[1]}:${slug[2]}`)
+    }
     const find = (coins: string[]) => {
       const perps = coins.filter(coin => coin.indexOf('/') === -1)
 
@@ -424,7 +432,7 @@ class WorkspacesService {
       console.error(error)
     }
 
-    const [, dex] = name.match(/^([^:]+):/) || []
+    const [, dex] = name.match(/^([^:]+):/) || slug || []
     const controller = new AbortController()
     const timeout = setTimeout(() => controller.abort(), 3000)
 

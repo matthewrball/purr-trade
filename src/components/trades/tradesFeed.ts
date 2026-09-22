@@ -415,14 +415,14 @@ export default class TradesFeed {
       wallet.address
     )}" target="_blank" rel="noopener noreferrer" title="" aria-haspopup="dialog" aria-label="${escapeHtml(
       walletTitle(wallet, liquidation)
-    )}"><span class="trade__avatar" style="background:linear-gradient(135deg,${top} 50%,${bottom} 50%)"></span><span class="trade__name">${
+    )}"><span class="trade__avatar" style="background:linear-gradient(135deg,${top} 50%,${bottom} 50%)"></span><span class="trade__name"><span class="trade__text">${
       wallet.name
         ? escapeHtml(wallet.text)
         : escapeHtml(wallet.text).replace(
             /….*/,
             '<span class="trade__tail">$&</span>'
           )
-    }</span>${wallet.whale ? '<span class="trade__whale">🐋</span>' : ''}</a>`
+    }</span></span>${wallet.whale ? '<span class="trade__whale">🐋</span>' : ''}</a>`
   }
 
   getTradesThesholds() {

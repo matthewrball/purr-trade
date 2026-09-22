@@ -9,13 +9,19 @@ import svgLoader from 'vite-svg-loader'
 
 let date
 
-if (typeof gitprocess === 'function') {
+// the commit date, so a rebuild of the same commit keeps the same chunk names
+// (the date is in the entry chunk, which every lazy chunk imports)
+try {
   date = new Date(
     gitprocess
       .execSync('git log -1 --date=format:"%Y/%m/%d %T" --format="%ad"')
       .toString()
   )
-} else {
+} catch (error) {
+  // no git (docker build context)
+}
+
+if (!date || isNaN(date.getTime())) {
   date = new Date()
 }
 

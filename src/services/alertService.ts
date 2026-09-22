@@ -7,9 +7,11 @@ import aggregatorService from './aggregatorService'
 import audioService from './audioService'
 import dialogService from './dialogService'
 import {
+  countDecimals,
   formatAmount,
   formatMarketPrice,
   getMarketLabel,
+  marketDecimals,
   stripStablePair
 } from './productsService'
 import workspacesService from './workspacesService'
@@ -65,6 +67,7 @@ class AlertService {
   // local (in-tab) alerts
   private tickerPrices: { [marketKey: string]: number } = {}
   private indexPrices: { [index: string]: number } = {}
+  private localTriggers: Promise<void> = Promise.resolve()
   private notificationsOffered = false
 
   constructor() {
@@ -666,11 +669,48 @@ class AlertService {
   }
 
   private triggerLocalAlert(alert: MarketAlert, price: number, up: boolean) {
+    // this tab's copy first: the next tickers must not trigger it again
     alert.triggered = true
 
-    workspacesService.saveAlerts({
+    // one at a time, each one reads what the previous one saved
+    this.localTriggers = this.localTriggers
+      .then(() => this.saveLocalTrigger(alert, price, up))
+      .catch(err => {
+        console.error('[alertService] local alert failed', err)
+      })
+  }
+
+  /**
+   * The alerts store is shared by every tab and workspace: mark the stored
+   * alert, not this tab's copy (removed, moved or added elsewhere since)
+   */
+  private async saveLocalTrigger(
+    alert: MarketAlert,
+    price: number,
+    up: boolean
+  ) {
+    const alerts = await workspacesService.getAlerts(alert.market)
+    const storedAlert = alerts.find(a => a.price === alert.price)
+
+    this.alerts[alert.market] = alerts
+
+    if (!storedAlert || storedAlert.triggered) {
+      // removed in another tab, or it already fired there
+      aggregatorService.emit('alert', {
+        price: alert.price,
+        market: alert.market,
+        type: storedAlert ? AlertEventType.TRIGGERED : AlertEventType.DELETED
+      })
+      return
+    }
+
+    // its message may have been edited there too
+    alert = storedAlert
+    alert.triggered = true
+
+    await workspacesService.saveAlerts({
       market: alert.market,
-      alerts: this.alerts[alert.market]
+      alerts
     })
 
     aggregatorService.emit('alert', {
@@ -680,7 +720,7 @@ class AlertService {
       type: AlertEventType.TRIGGERED
     })
 
-    const alertPrice = formatMarketPrice(alert.price, alert.market)
+    const alertPrice = this.formatLocalPrice(alert.price, alert.market)
 
     store.dispatch('app/showNotice', {
       id: `alert-${alert.market}-${alert.price}`,
@@ -697,12 +737,33 @@ class AlertService {
     this.showBrowserNotification(
       `${alert.market} ${up ? '↑' : '↓'} ${alertPrice}`,
       (alert.message ? alert.message + '\n' : '') +
-        `Price crossed ${alertPrice} (now ${formatMarketPrice(
+        `Price crossed ${alertPrice} (now ${this.formatLocalPrice(
           price,
           alert.market
         )})`,
       `purr-alert-${alert.market}-${alert.price}`
     )
+  }
+
+  /**
+   * A coin's decimals are set a moment after its markets' first prices
+   * (normalizeDecimals), until then use the decimals of one of its markets
+   */
+  private formatLocalPrice(price: number, index: string) {
+    if (typeof marketDecimals[index] === 'undefined') {
+      for (const marketKey in this.tickerPrices) {
+        const product = store.state.panes.marketsListeners[marketKey]
+
+        if (product && stripStablePair(product.local) === index) {
+          return price.toFixed(
+            marketDecimals[marketKey] ??
+              countDecimals(this.tickerPrices[marketKey])
+          )
+        }
+      }
+    }
+
+    return formatMarketPrice(price, index)
   }
 
   private playAlertSound() {
@@ -843,7 +904,10 @@ class AlertService {
         continue
       }
 
-      const threshold = thresholds[trade.exchange + ':' + trade.pair]
+      // TWAP fills only for the panes that show them
+      const threshold = (trade.twap ? thresholds.twap : thresholds.all)[
+        trade.exchange + ':' + trade.pair
+      ]
 
       if (!threshold) {
         continue
@@ -869,7 +933,10 @@ class AlertService {
   }
 
   private getTradePrintThresholds() {
-    let thresholds: { [marketKey: string]: number }
+    let thresholds: {
+      all: { [marketKey: string]: number }
+      twap: { [marketKey: string]: number }
+    }
 
     for (const paneId in store.state.panes.panes) {
       const pane = store.state.panes.panes[paneId]
@@ -878,8 +945,8 @@ class AlertService {
         continue
       }
 
-      const threshold = (store.state[paneId] as TradesPaneState)
-        ?.notifyThreshold
+      const paneState = store.state[paneId] as TradesPaneState
+      const threshold = paneState?.notifyThreshold
 
       if (!(threshold > 0) || !pane.markets) {
         continue
@@ -887,11 +954,15 @@ class AlertService {
 
       for (const marketKey of pane.markets) {
         if (!thresholds) {
-          thresholds = {}
+          thresholds = { all: {}, twap: {} }
         }
 
-        if (!thresholds[marketKey] || threshold < thresholds[marketKey]) {
-          thresholds[marketKey] = threshold
+        for (const byMarket of paneState.showTwap
+          ? [thresholds.all, thresholds.twap]
+          : [thresholds.all]) {
+          if (!byMarket[marketKey] || threshold < byMarket[marketKey]) {
+            byMarket[marketKey] = threshold
+          }
         }
       }
     }

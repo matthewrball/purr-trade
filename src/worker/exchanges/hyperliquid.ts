@@ -10,6 +10,7 @@ export default class HYPERLIQUID extends Exchange {
   private liquidationTimer: ReturnType<typeof setTimeout>
   private liquidationDelay = 1000
   private subscribedAt: { [pair: string]: number } = {}
+  private snapshotPairs: { [apiId: string]: string } = {}
   protected endpoints: { [id: string]: any } = {
     PRODUCTS: ['meta', 'spotMeta', 'perpDexs'].map(type => ({
       url: 'https://api.hyperliquid.xyz/info',
@@ -192,6 +193,7 @@ export default class HYPERLIQUID extends Exchange {
 
   onClose(event, pairs) {
     this.stopKeepAlive(event.target)
+    delete this.snapshotPairs[event.target._id]
     if (!this.apis.some(api => api.readyState === WebSocket.OPEN)) {
       this.closeLiquidationApi()
     }
@@ -289,7 +291,27 @@ export default class HYPERLIQUID extends Exchange {
   onMessage(event, api) {
     const json = JSON.parse(event.data)
 
+    if (
+      json &&
+      json.channel === 'subscriptionResponse' &&
+      json.data &&
+      json.data.method === 'subscribe' &&
+      json.data.subscription &&
+      json.data.subscription.type === 'trades'
+    ) {
+      // HL sends that pair's snapshot (the replay) right after, on this socket
+      const coin = json.data.subscription.coin
+      this.snapshotPairs[api._id] = this.spotPairs[coin] || coin
+      return
+    }
+
     if (json && json.channel === 'trades') {
+      if (!json.data.length) {
+        // empty snapshot (no recent trade): the pair's next frame is live
+        delete this.subscribedAt[this.snapshotPairs[api._id]]
+        delete this.snapshotPairs[api._id]
+        return
+      }
       const trades = json.data
         .map(t => this.formatResponse(t))
         .filter(trade => trade.pair && api._connected.includes(trade.pair))
@@ -320,7 +342,7 @@ export default class HYPERLIQUID extends Exchange {
       user: t.users?.[t.side === 'B' ? 0 : 1],
       maker: t.users?.[t.side === 'B' ? 1 : 0],
       hash: t.hash,
-      // all-zero hash = a TWAP slice fill (not a liquidation, lane C3)
+      // all-zero hash = a TWAP slice fill (checked against userFills; not a liquidation)
       twap: /^0x0+$/.test(t.hash)
     }
   }
