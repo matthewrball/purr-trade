@@ -330,7 +330,7 @@ export default class Trades extends Mixins(PaneMixin) {
     }
 
     .trade__wallet,
-    .trade__tags:nth-last-child(2) {
+    .trade__tags:last-child {
       margin-right: calc(2.4em - 0.5rem);
     }
   }
@@ -497,6 +497,15 @@ export default class Trades extends Mixins(PaneMixin) {
     font-weight: 600;
   }
 
+  // bigger, bolder times ("31s"): a wider gutter so the chip never runs into them
+  &.-level-2,
+  &.-level-3 {
+    .trade__wallet,
+    .trade__tags:last-child {
+      margin-right: calc(3.2em - 1.5rem);
+    }
+  }
+
   // Hyperliquid TWAP slice fills
   &.-twap {
     opacity: 0.55;
@@ -535,6 +544,8 @@ export default class Trades extends Mixins(PaneMixin) {
   }
 
   .trade__price {
+    // a price needs less room than the amount + chip column next to it
+    flex-grow: 0.6;
     min-width: min-content;
 
     small {
@@ -547,9 +558,17 @@ export default class Trades extends Mixins(PaneMixin) {
     }
   }
 
-  .trade__amount {
+  // amount + its tags and chip in one column: the chip no longer eats into
+  // the price/amount split, so every row lines up
+  .trade__cell {
+    display: flex;
     flex-grow: 1.25;
-    min-width: min-content;
+    // the chip shrinks first (down to its min-width), never the price column
+    min-width: 0;
+  }
+
+  .trade__amount {
+    flex: 1 0 auto;
     .trade__amount__base {
       display: none;
       padding: 0 0.5em;
@@ -624,7 +643,7 @@ export default class Trades extends Mixins(PaneMixin) {
     }
 
     // stop where .trade__time starts when no chip follows
-    &:nth-last-child(2) {
+    &:last-child {
       margin-right: calc(2.4em - 1.5rem);
     }
   }

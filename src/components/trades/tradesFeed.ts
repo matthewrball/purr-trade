@@ -363,6 +363,7 @@ export default class TradesFeed {
           )}</span></div>`
         : ''
     }
+    <div class="trade__cell">
     <div class="trade__amount">
     <span class="trade__amount__quote">
         ${' '}
@@ -377,6 +378,7 @@ export default class TradesFeed {
     </div>
     ${this.renderTags(trade)}
     ${wallet ? this.renderWallet(wallet, trade.liquidation) : ''}
+    </div>
     <div class="trade__time ${timestampClass}" data-timestamp="${trade.timestamp.toString()}">${timestampText}</div>
     </li>`
   }
